@@ -6,10 +6,12 @@
 
 Save your favorite videos at [bilibili](https://www.bilibili.com/) to disk.
 
+使用 [FFmpeg](http://ffmpeg.org/) 合并m4s音频和视频
+
 ## 运行
 
 ```
-python main.py
+python main.py {userID}
 ```
 
 ## TODO
@@ -17,12 +19,13 @@ python main.py
 ### 基本功能
 
 - [x] 保存用户基本信息和公开收藏夹信息
-- [ ] 保存收藏夹中的收藏条目信息
-- [ ] 下载收藏条目的视频
+- [x] 保存收藏夹中的收藏条目信息
+- [x] 下载收藏条目的视频
 - [ ] 支持下载分p视频
 - [ ] 增量下载新收藏的视频
 
 ### 其他功能
+
 - [ ] 支持更新已下载但被up主更新的视频
 - [ ] 支持利用cookies下载私密收藏的视频
 
