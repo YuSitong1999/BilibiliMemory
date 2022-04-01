@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 import time
@@ -5,6 +6,7 @@ import requests
 import json
 
 from media import download_media
+import config
 
 
 class UserSimple:
@@ -79,15 +81,16 @@ def get_user_created_all_fav_folders(mid: str) -> list[FavFolder]:
 
 
 def get_user_created_fav_folder_content(folder: FavFolder) -> list[Media]:
-    output_folder = 'output\\%s\\%s\\' % (folder.mid, folder.fid)
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
+    favorite_folder = os.path.join(config.get_config('output'), str(folder.mid), str(folder.fid))
+    if not os.path.exists(favorite_folder):
+        os.mkdir(favorite_folder)
 
     base_url = 'https://api.bilibili.com/x/v3/fav/resource/list?ps=20&keyword=&order=mtime' \
                '&type=0&tid=0&platform=web&jsonp=jsonp&media_id=' + str(folder.fid)
     medias = list[Media]([])
-    for i in range(1, (folder.media_count + 20 - 1) // 20 + 1):
-        url = base_url + ('&pn=%d' % i)
+    page_count = math.ceil(folder.media_count / 20)
+    for page_id in range(page_count):
+        url = base_url + ('&pn=%d' % (page_id + 1))
         response = requests.get(url)
         response_json = json.loads(response.text)
         if response_json['code'] != 0:
@@ -100,10 +103,10 @@ def get_user_created_fav_folder_content(folder: FavFolder) -> list[Media]:
                               media['ctime'], media['pubtime'], media['fav_time'], media['bv_id'],
                               media['ugc']['first_cid'])
 
-            download_media(now_media.bv_id, now_media.first_cid, output_folder)
+            download_media(now_media.bv_id, now_media.first_cid, favorite_folder)
 
             medias.append(now_media)
-            with open(output_folder + 'medias.json', 'w') as f:
+            with open(os.path.join(favorite_folder,'medias.json'), 'w') as f:
                 json.dump(medias, f, cls=MyEncoder, ensure_ascii=False)
             print('finished:', folder.title, now_media.title)
             time.sleep(5)
@@ -117,12 +120,12 @@ def main():
 
     folders = get_user_created_all_fav_folders(mid)
 
-    output = 'output\\' + mid + '\\'
-    if not os.path.exists(output):
-        os.mkdir(output)
-    with open(output + 'user.json', 'w') as f:
+    user_folder = os.path.join(config.get_config('output'), mid)
+    if not os.path.exists(user_folder):
+        os.mkdir(user_folder)
+    with open(os.path.join(user_folder, 'user.json'), 'w') as f:
         json.dump(user, f, cls=MyEncoder, ensure_ascii=False)
-    with open(output + 'fav_folders.json', 'w') as f:
+    with open(os.path.join(user_folder, 'fav_folders.json'), 'w') as f:
         json.dump(folders, f, cls=MyEncoder, ensure_ascii=False)
 
     for folder in folders:
@@ -130,4 +133,5 @@ def main():
 
 
 if __name__ == '__main__':
+    config.try_load_config()
     main()

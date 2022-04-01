@@ -2,6 +2,8 @@ import requests
 import json
 import os
 
+import config
+
 
 def get_media_url(bv_id: str, first_cid: int) -> [str, str]:
     url = 'https://api.bilibili.com/x/player/playurl?qn=120&type=&otype=json&fourk=1&fnver=0&fnval=976&bvid=%s&cid=%d' \
@@ -35,11 +37,11 @@ def merge_media(audio_file_path: str, video_file_path: str, file_path: str):
 def download_media(bv_id: str, first_cid: int, media_path):
     audio_url, video_url = get_media_url(bv_id, first_cid)
     # download audio
-    audio_file_path = 'tmp_audio.m4s'
+    audio_file_path = os.path.join(config.get_config('tmpPath'), 'tmp_audio.m4s')
     download_file(bv_id, audio_url, audio_file_path)
     # download video
-    video_file_path = 'tmp_video.m4s'
+    video_file_path = os.path.join(config.get_config('tmpPath'), 'tmp_video.m4s')
     download_file(bv_id, video_url, video_file_path)
     # merge media
-    file_name = bv_id + '.mp4'
-    merge_media(audio_file_path, video_file_path, media_path + file_name)
+    file_path = os.path.join(media_path, bv_id + '.mp4')
+    merge_media(audio_file_path, video_file_path, file_path)
