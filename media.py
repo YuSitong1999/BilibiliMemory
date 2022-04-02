@@ -34,14 +34,17 @@ def merge_media(audio_file_path: str, video_file_path: str, file_path: str):
     os.remove(video_file_path)
 
 
-def download_media(bv_id: str, first_cid: int, media_path):
+def download_media(bv_id: str, first_cid: int, media_path: str, page_id: str):
     audio_url, video_url = get_media_url(bv_id, first_cid)
     # download audio
-    audio_file_path = os.path.join(config.get_config('tmpPath'), 'tmp_audio.m4s')
+    audio_file_path = os.path.join(config.tmp_path, 'tmp_audio.m4s')
     download_file(bv_id, audio_url, audio_file_path)
     # download video
-    video_file_path = os.path.join(config.get_config('tmpPath'), 'tmp_video.m4s')
+    video_file_path = os.path.join(config.tmp_path, 'tmp_video.m4s')
     download_file(bv_id, video_url, video_file_path)
     # merge media
-    file_path = os.path.join(media_path, bv_id + '.mp4')
+    if page_id != '':
+        file_path = os.path.join(media_path, bv_id + '_' + page_id + '.mp4')
+    else:
+        file_path = os.path.join(media_path, bv_id + '.mp4')
     merge_media(audio_file_path, video_file_path, file_path)
