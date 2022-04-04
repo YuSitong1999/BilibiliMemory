@@ -23,8 +23,14 @@ class User:
     def __init__(self, mid: int):
         self.mid = mid
         self.name, self.sex, self.sign = api_get_user(mid)
-        logging.info('set user name: ' + self.name)
+        logging.info('NOW USER NAME: ' + self.name)
         self.fav_folders = api_get_user_all_folders(mid)
+        # filter skipped favorite folder
+        now_folders: list[FavFolder] = []
+        for i in range(len(self.fav_folders)):
+            if len(self.fav_folders[i].medias) != 0:
+                now_folders.append(self.fav_folders[i])
+        self.fav_folders = now_folders
 
 
 class FavFolder:
@@ -32,8 +38,13 @@ class FavFolder:
         self.fid = fid
         self.mid = mid
         self.title = title
+        self.media_count = 0
+        self.medias = []
+        logging.info('NOW FAVORITE FOLDER TITLE: ' + self.title)
+        is_skip = input('skip favorite folder %s y(es) or not(default)?' % self.title).strip().lower()
+        if is_skip != '' and is_skip[0] == 'y':
+            return
         self.media_count = media_count
-        logging.info('set fav_folder title: ' + self.title)
         self.medias = api_get_folder_all_medias(fid, media_count)
 
 
@@ -336,11 +347,11 @@ def update_local_user_folder(users: list[User]):
     # delete old and create new
     for user in users:
         user_path = os.path.join(config.output_path, str(user.mid))
-        if os.path.exists(user_path):
-            shutil.rmtree(user_path)
-        os.mkdir(user_path)
+        config.ensure_path_exist(user_path)
         for folder in user.fav_folders:
             user_folder_path = os.path.join(config.output_path, str(user.mid), str(folder.fid))
+            if os.path.exists(user_folder_path):
+                shutil.rmtree(user_folder_path)
             os.mkdir(user_folder_path)
             for media in folder.medias:
                 create_link_from_path_to_media(media.bv_id, media.page, media.title, user_folder_path)
