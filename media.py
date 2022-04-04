@@ -1,3 +1,5 @@
+import logging
+
 import requests
 import json
 import os
@@ -6,12 +8,14 @@ import config
 
 
 def get_media_url(bv_id: str, first_cid: int) -> [str, str]:
+    logging.info('get media url ' + bv_id + ' ' + str(first_cid) + ' :')
     url = 'https://api.bilibili.com/x/player/playurl?qn=120&type=&otype=json&fourk=1&fnver=0&fnval=976&bvid=%s&cid=%d' \
           % (bv_id, first_cid)
     req = requests.get(url, headers={'Connection': 'close'})
     media_info = json.loads(req.text)['data']['dash']
     audio_url = media_info['audio'][0]['base_url']  # TODO baseUrl?
     video_url = media_info['video'][0]['base_url']
+    logging.info('get media url ' + bv_id + ' ' + str(first_cid) + ' finished.')
     return audio_url, video_url
 
 
@@ -40,13 +44,18 @@ def download_media(bv_id: str, first_cid: int, media_path: str, page_id: str):
     audio_url, video_url = get_media_url(bv_id, first_cid)
     # download audio
     audio_file_path = os.path.join(config.tmp_path, 'tmp_audio.m4s')
+    logging.info('download audio ' + bv_id + ' ' + str(first_cid) + ':')
     download_file(bv_id, audio_url, audio_file_path)
+    logging.info('download audio ' + bv_id + ' ' + str(first_cid) + ' finished.')
     # download video
     video_file_path = os.path.join(config.tmp_path, 'tmp_video.m4s')
+    logging.info('download video ' + bv_id + ' ' + str(first_cid) + ':')
     download_file(bv_id, video_url, video_file_path)
+    logging.info('download video ' + bv_id + ' ' + str(first_cid) + ' finished.')
     # merge media
     if page_id != '':
         file_path = os.path.join(media_path, bv_id + '_' + page_id + '.mp4')
     else:
         file_path = os.path.join(media_path, bv_id + '.mp4')
+    logging.info('merge media ' + bv_id + ' ' + str(first_cid))
     merge_media(audio_file_path, video_file_path, file_path)

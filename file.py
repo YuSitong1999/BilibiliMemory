@@ -5,10 +5,13 @@ import config
 
 class MyEncoder(json.JSONEncoder):
     def default(self, obj):
+        if isinstance(obj, set):
+            return str(obj)
         return obj.__dict__
 
 
 def read_local_file() -> tuple[list[dict], list[dict], list[dict], list[dict]]:
+    logging.info('read_local_file')
     # read media file
     with open(config.media_file, encoding='utf-8') as f:
         media: dict = json.load(f)

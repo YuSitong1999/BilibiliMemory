@@ -68,6 +68,7 @@ def ensure_id_list():
 
 
 def ensure_config():
+    logging.info('ENSURE CONFIG:')
     global config_path, config
     global output_path, output_all_path, output_deleted_path
     global meta_path, tmp_path
@@ -106,3 +107,4 @@ def ensure_config():
     logging.info('after_time_stamp: ')
     logging.info(after_time_stamp)
     config.set('task', 'stamp', str(after_time_stamp))
+    logging.info('ENSURE CONFIG FINISHED')

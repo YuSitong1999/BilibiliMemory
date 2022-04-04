@@ -70,6 +70,10 @@ class Page:
         self.duration = duration
 
 
+def object_to_json_str(obj: object) -> str:
+    return json.dumps(obj, cls=MyEncoder, ensure_ascii=False)
+
+
 def api_get_user(mid: int) -> tuple[str, str, str]:
     url = 'https://api.bilibili.com/x/space/acc/info?jsonp=jsonp&mid=%s' % mid
     resp = json.loads(requests.get(url, headers={'Connection': 'close'}).text)
@@ -108,8 +112,9 @@ def api_get_folder_all_medias(fid: int, media_count: int) -> list[Media]:
                               user_simple, media['ctime'], media['pubtime'], media['fav_time'], media['bv_id'],
                               media['ugc']['first_cid'], media['cover'])
             medias.append(now_media)
+            logging.info('sleep for 1s')
             time.sleep(1)
-
+        logging.info('sleep for 5s')
         time.sleep(5)
 
     return medias
@@ -131,12 +136,11 @@ def api_get_media_all_pages(bv_id: str) -> list[Page]:
 
 # get all information about aim users' favorite
 def get_users() -> list[User]:
-    logging.info('get_users:')
+    logging.info('GET ALL USERS:')
     users: list[User] = list[User]()
     for mid in config.id_list:
         users.append(User(mid))
-    logging.info('update_get users: ')
-    logging.info(json.dumps(users, cls=MyEncoder, ensure_ascii=False))
+    logging.info('GET ALL USERS FINISHED.')
     return users
 
 
@@ -173,6 +177,7 @@ def create_link_from_path_to_media(bv_id: str, page: int, title: str, path: str)
 
 def delete_media_from_all(bv_id: str, page: int):
     source_file_base = os.path.join(config.output_all_path, bv_id)
+    logging.info('remove media: ' + source_file_base)
     # delete cover jpg
     os.remove(source_file_base + '.jpg')
     # delete information json
@@ -186,18 +191,27 @@ def delete_media_from_all(bv_id: str, page: int):
 
 
 def update_all_and_delete_path() -> list[User]:
-    logging.info('begin update all and delete path:')
+    logging.info('UPDATE ALL AND DELETE DIRECTORY:')
     # read media folder lost
     local_exist, local_deleted, local_folder, local_lost = read_local_file()
+    logging.debug('local_exist: ' + object_to_json_str(local_exist))
+    logging.debug('local_deleted: ' + object_to_json_str(local_deleted))
+    logging.debug('local_lost: ' + object_to_json_str(local_lost))
     new_local_exist = local_exist.copy()
     new_local_deleted = local_deleted.copy()
 
     # generate local
+    logging.info('generate local set: exist set and deleted set')
     local_exist_set: set[str] = generate_set_from_list(local_exist)
     local_deleted_set: set[str] = generate_set_from_list(local_deleted)
 
     local_lost_set: set[str] = generate_set_from_list(local_lost)
 
+    logging.debug('local_exist_set: ' + object_to_json_str(local_exist_set))
+    logging.debug('local_deleted_set: ' + object_to_json_str(local_deleted_set))
+    logging.debug('local_lost_set: ' + object_to_json_str(local_lost_set))
+
+    # get users
     users: list[User] = get_users()
 
     # put online media into all_media
@@ -205,6 +219,7 @@ def update_all_and_delete_path() -> list[User]:
     # generate online exist and deleted set
     online_exist_set: set[str] = set[str]()
     online_deleted_set: set[str] = set[str]()
+    logging.info('get all media information, and generate oneline exist set and deleted set:')
     for i in range(len(users)):
         for j in range(len(users[i].fav_folders)):
             new_medias: list[Media] = []
@@ -222,8 +237,10 @@ def update_all_and_delete_path() -> list[User]:
                 new_medias.append(media)
             # filter skip media
             users[i].fav_folders[j].medias = new_medias
-    logging.info('users')
-    logging.info(json.dumps(users, cls=MyEncoder, ensure_ascii=False))
+    logging.info('USER (AFTER FILTER SKIPPED FOLDERS): ')
+    logging.debug(object_to_json_str(users))
+    logging.debug('online_exist_set: ' + object_to_json_str(online_exist_set))
+    logging.debug('online_deleted_set: ' + object_to_json_str(online_deleted_set))
 
     # put local media into all_media
     for media in local_exist + local_deleted:
@@ -237,25 +254,25 @@ def update_all_and_delete_path() -> list[User]:
     '''
     update lost media information
     '''
-    logging.info('start update lost media')
+    logging.info('update lost media:')
     new_lost_set = online_deleted_set.difference(local_exist_set). \
         difference(local_deleted_set).difference(local_lost_set)
     new_lost = generate_list_use_set_from_dict(new_lost_set, all_media)
     local_lost += new_lost
     file.write_lost_file(local_lost)
-    logging.info('finished update lost media')
+    logging.info('update lost media finished.')
 
     '''
     download new favorite media
     '''
-    logging.info('start download new favorite media')
+    logging.info('download new favorite media:...')
     new_favorite_set = online_exist_set.difference(local_exist_set).difference(local_deleted_set)
     is_first = True
     for bv_id in new_favorite_set:
         if is_first:
             is_first = False
         else:
-            # sleep to avoid block
+            logging.info('sleep for 10s')
             time.sleep(10)
 
         now_media = all_media[bv_id]
@@ -270,6 +287,7 @@ def update_all_and_delete_path() -> list[User]:
         for i in range(len(cid_list)):
             cid = cid_list[i]
             if i != 0:
+                logging.info('sleep for 3s')
                 time.sleep(3)
 
             page_id = str(i + 1)
@@ -279,7 +297,7 @@ def update_all_and_delete_path() -> list[User]:
         new_local_exist.append(now_media.__dict__)
         # update media.json immediately
         file.write_local_file(new_local_exist, new_local_deleted)
-    logging.info('finished download new favorite media')
+    logging.info('download new favorite media finished.')
 
     '''
     create hard link for nearly deleted files
@@ -301,6 +319,7 @@ def update_all_and_delete_path() -> list[User]:
         now_media = all_media[bv_id]
         new_local_exist = [e for e in new_local_exist if e['bv_id'] != bv_id]
         file.write_local_file(new_local_exist, new_local_deleted)
+        logging.info('delete cancel favorite media: ' + now_media.title)
         delete_media_from_all(bv_id, now_media.page)
         # TODO unknown: maybe cancel before deleted
 
@@ -309,6 +328,7 @@ def update_all_and_delete_path() -> list[User]:
     available again
     '''
 
+    logging.info('UPDATE ALL AND DELETE DIRECTORY FINISHED.')
     return users
 
 
@@ -337,13 +357,15 @@ def update_main():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.DEBUG,
                         format="%(asctime)s %(name)s %(levelname)s %(message)s",
                         datefmt='%Y-%m-%d  %H:%M:%S %a'
                         )
 
     opt = sys.argv[1]
     if opt == 'update':
+        logging.info('YOU CHOSE UPDATE')
+        logging.info('------------------')
         update_main()
     elif opt == 'clean':
         pass  # clean useless files after exception
