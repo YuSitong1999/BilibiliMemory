@@ -225,6 +225,15 @@ def update_all_and_delete_path() -> list[User]:
     logging.info('users')
     logging.info(json.dumps(users, cls=MyEncoder, ensure_ascii=False))
 
+    # put local media into all_media
+    for media in local_exist + local_deleted:
+        bv_id = media['bv_id']
+        all_media[bv_id] = Media(media['id'], media['title'], media['intro'], media['page'], media['duration'],
+                                 UserSimple(media['upper']['mid'], media['upper']['name']), media['ctime'],
+                                 media['pubtime'], media['fav_time'], media['bv_id'], media['first_cid'],
+                                 media['cover'])
+    logging.debug('all_media: ' + object_to_json_str(all_media))
+
     '''
     update lost media information
     '''
