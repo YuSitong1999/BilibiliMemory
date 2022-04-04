@@ -348,12 +348,65 @@ def update_local_user_folder(users: list[User]):
 
 
 def update_main():
-    # configure
-    config.ensure_config()
-
     users = update_all_and_delete_path()
 
     update_local_user_folder(users)
+
+
+def append_media_file_name_to_list(name_list: list[str], name: str, page: int):
+    name_list.append(name + '.json')
+    name_list.append(name + '.jpg')
+    if page == 1:
+        name_list.append(name + '.mp4')
+    else:
+        for i in range(page):
+            name_list.append('%s_%d.mp4' % (name, i + 1))
+
+
+def delete_file_name_start_with_bv_and_not_in_list(name_list: list[str], root_path: str):
+    for name in os.listdir(root_path):
+        path = os.path.join(root_path, name)
+        if os.path.isfile(path) and name.find('BV') == 0 and name not in name_list:
+            logging.info('remove: ' + path)
+            os.remove(path)
+
+
+def clean_main():
+    # read local file
+    local_exist, local_deleted, local_folder, local_lost = read_local_file()
+
+    '''
+    clean all and delete directory
+    '''
+    # generate file name in 'all' directory
+    all_file_name: list[str] = []
+    for media in local_exist + local_deleted:
+        bv_id: str = media['bv_id']
+        append_media_file_name_to_list(all_file_name, bv_id, media['page'])
+    logging.debug('file name should in all directory: ' + object_to_json_str(all_file_name))
+
+    # generate file name in 'deleted' directory
+    deleted_file_name: list[str] = []
+    for media in local_deleted:
+        bv_id: str = media['bv_id']
+        file_name_base = bv_id + '_' + validate_file_name(media['title'])
+        append_media_file_name_to_list(deleted_file_name, file_name_base, media['page'])
+    logging.debug('file name should in deleted directory: ' + object_to_json_str(deleted_file_name))
+
+    # delete media files in all and deleted directory but not in media.json
+    logging.info('deleted useless file in all and deleted directory:...')
+    delete_file_name_start_with_bv_and_not_in_list(all_file_name, config.output_all_path)
+    delete_file_name_start_with_bv_and_not_in_list(deleted_file_name, config.output_deleted_path)
+    logging.info('deleted useless file in all and deleted directory finished.')
+
+    # delete files which name start with 'tmp' in tmp directory
+    logging.info('deleted useless file in tmp directory:...')
+    for name in os.listdir(config.tmp_path):
+        path = os.path.join(config.tmp_path, name)
+        if os.path.isfile(path) and name.find('tmp') == 0:
+            logging.info('remove: ' + path)
+            os.remove(path)
+    logging.info('deleted useless file in tmp directory finished.')
 
 
 if __name__ == '__main__':
@@ -361,6 +414,8 @@ if __name__ == '__main__':
                         format="%(asctime)s %(name)s %(levelname)s %(message)s",
                         datefmt='%Y-%m-%d  %H:%M:%S %a'
                         )
+    # configure
+    config.ensure_config()
 
     opt = sys.argv[1]
     if opt == 'update':
@@ -368,6 +423,8 @@ if __name__ == '__main__':
         logging.info('------------------')
         update_main()
     elif opt == 'clean':
-        pass  # clean useless files after exception
+        logging.info('YOU CHOSE CLEAN')
+        logging.info('------------------')
+        clean_main()
     elif opt == 'check':
         pass  # check whether the mate data match the actual files or not

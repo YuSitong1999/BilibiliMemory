@@ -47,11 +47,9 @@ python main.py check
 
 ## 程序流程
 
-### clean 多余文件清理（暂未实现）
+### clean 多余文件清理（已实现）
 
-1. {output} \ 中，删除all和deleted中存在，但medias.json中不存在的文件、文件夹。
-    1. BV开头文件
-    2. 纯数字文件夹
+1. {output} \ 中，删除all和deleted中存在，但medias.json中不存在的以“BV”开头的文件
 2. {tmp} \ 中，删除以tmp开头的所有文件。
 
 ### check 检查元数据完整性（暂未实现）
@@ -97,5 +95,5 @@ python main.py check
 - [ ] 支持询问和跳过指定时长以上的内容
 - [ ] 支持利用cookies下载私密收藏的视频
 - [ ] 检查元数据完整性
-- [ ] 清除多余文件
+- [x] 清除多余文件
 - [ ] 支持更新已下载但被up主更新的视频
