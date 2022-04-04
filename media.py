@@ -8,8 +8,7 @@ import config
 def get_media_url(bv_id: str, first_cid: int) -> [str, str]:
     url = 'https://api.bilibili.com/x/player/playurl?qn=120&type=&otype=json&fourk=1&fnver=0&fnval=976&bvid=%s&cid=%d' \
           % (bv_id, first_cid)
-    print(url)
-    req = requests.get(url)
+    req = requests.get(url, headers={'Connection': 'close'})
     media_info = json.loads(req.text)['data']['dash']
     audio_url = media_info['audio'][0]['base_url']  # TODO baseUrl?
     video_url = media_info['video'][0]['base_url']
@@ -18,8 +17,11 @@ def get_media_url(bv_id: str, first_cid: int) -> [str, str]:
 
 def download_file(bv_id: str, url: str, file_path: str):
     fake_referer_url = 'https://www.bilibili.com/video/' + bv_id
-    req = requests.get(url, headers={'User-Agent': 'PostmanRuntime/7.28.4', 'referer': fake_referer_url,
-                                     'range': 'bytes=0-'})
+    req = requests.get(url, headers={
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.55',
+        'referer': fake_referer_url,
+        'range': 'bytes=0-',
+        'Connection': 'close'})
     with open(file_path, 'wb') as file:
         file.write(req.content)
 

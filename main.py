@@ -72,7 +72,7 @@ class Page:
 
 def api_get_user(mid: int) -> tuple[str, str, str]:
     url = 'https://api.bilibili.com/x/space/acc/info?jsonp=jsonp&mid=%s' % mid
-    resp = json.loads(requests.get(url).text)
+    resp = json.loads(requests.get(url, headers={'Connection': 'close'}).text)
     if resp['code'] != 0:
         raise Exception('get user information error: ' + str(mid))
     user = resp['data']
@@ -81,7 +81,7 @@ def api_get_user(mid: int) -> tuple[str, str, str]:
 
 def api_get_user_all_folders(mid: int) -> list[FavFolder]:
     url = 'https://api.bilibili.com/x/v3/fav/folder/created/list-all?jsonp=jsonp&up_mid=%s' % mid
-    resp = json.loads(requests.get(url).text)
+    resp = json.loads(requests.get(url, headers={'Connection': 'close'}).text)
     if resp['code'] != 0:
         raise Exception('get user favorite folders error: ' + str(mid))
     return [FavFolder(folder['id'], folder['mid'], folder['title'], folder['media_count'])
@@ -97,7 +97,7 @@ def api_get_folder_all_medias(fid: int, media_count: int) -> list[Media]:
     page_count = math.ceil(media_count / 20)
     for page_id in range(page_count):
         url = generate_url(page_id)
-        resp = json.loads(requests.get(url).text)
+        resp = json.loads(requests.get(url, headers={'Connection': 'close'}).text)
         if resp['code'] != 0:
             raise Exception('get favorite folder error: ' + str(fid))
 
@@ -118,7 +118,7 @@ def api_get_folder_all_medias(fid: int, media_count: int) -> list[Media]:
 def api_get_media_all_pages(bv_id: str) -> list[Page]:
     pages: list[Page] = []
     url = 'https://api.bilibili.com/x/player/pagelist?jsonp=jsonp&bvid=%s' % bv_id
-    resp = json.loads(requests.get(url).text)
+    resp = json.loads(requests.get(url, headers={'Connection': 'close'}).text)
     if resp['code'] == -404:
         return []
     elif resp['code'] != 0:
