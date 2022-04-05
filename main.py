@@ -1,3 +1,4 @@
+import getopt
 import logging
 import math
 import os
@@ -358,10 +359,54 @@ def update_local_user_folder(users: list[User]):
     file.write_folder_file(users)
 
 
-def update_main():
-    users = update_all_and_delete_path()
+def meta_main(argv: list[str]):
+    OPERATION_STATUS = 'status'
+    OPERATION_ADD = 'add'
+    OPERATION_RM = 'rm'
 
-    update_local_user_folder(users)
+    try:
+        opts, args = getopt.getopt(argv, "o:f:t:l:", [])
+    except getopt.GetoptError:
+        print('''
+    python main.py meta
+        -o [add | rm | status]
+        [-f <folderID1>[,<folderID2>,...,<folderIDn>]]
+        [-t <afterDate>]
+        [-l <lengthLimit>]
+    ''')
+        sys.exit(2)
+    operation: str = OPERATION_STATUS
+    folders_id: list[int] = []
+    after_date: int = 0
+    length_limit: int = 0
+    for opt, arg in opts:
+        if opt == '-o':
+            if arg in (OPERATION_ADD, OPERATION_RM):
+                operation = arg
+        elif opt == '-f':
+            folders_id = [int(s) for s in arg.split(',') if s.isnumeric()]
+        elif opt == '-t':
+            after_date = math.floor(time.mktime(time.strptime(arg, '%Y-%m-%d')))
+        elif opt == '-l':
+            length_limit = int(arg) if arg.isnumeric() else 0
+    aims = file.read_aim_json()
+    if operation == OPERATION_STATUS:
+        aims_len = len(aims)
+        if aims_len == 0:
+            print('aim folder id list is empty!')
+        for i in range(aims_len):
+            print('%d: %s' % (i + 1, aims[i]))
+        return
+    if len(folders_id) == 0:
+        print('folder id list is empty!')
+        return
+    if operation == OPERATION_ADD:
+        for fid in folders_id:
+            aims.append(file.Aim(fid, after_date, length_limit))
+    else:
+        aims = [aim for aim in aims if aim.fid not in folders_id]
+
+    file.write_aim_json(aims)
 
 
 def append_media_file_name_to_list(name_list: list[str], name: str, page: int):
@@ -420,22 +465,31 @@ def clean_main():
     logging.info('deleted useless file in tmp directory finished.')
 
 
-if __name__ == '__main__':
+def set_log():
+    log_file_path = os.path.join(file.tmp_path, time.strftime('%Y-%m-%d_%H_%M_%S.log'))
     logging.basicConfig(level=logging.DEBUG,
-                        format="%(asctime)s %(name)s %(levelname)s %(message)s",
-                        datefmt='%Y-%m-%d  %H:%M:%S %a'
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filename=log_file_path,
+                        filemode='w'
                         )
-    # configure
-    config.ensure_config()
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    console_handler.setFormatter(formatter)
+    logging.getLogger('').addHandler(console_handler)
+
+
+if __name__ == '__main__':
+    file.ensure_directory_and_file()
+    set_log()
 
     opt = sys.argv[1]
-    if opt == 'update':
-        logging.info('YOU CHOSE UPDATE')
+    if opt == 'meta':
+        logging.info('YOU CHOSE META')
         logging.info('------------------')
-        update_main()
-    elif opt == 'clean':
+        meta_main(sys.argv[2:])
+    elif opt == 'update':
         logging.info('YOU CHOSE CLEAN')
         logging.info('------------------')
         clean_main()
-    elif opt == 'check':
-        pass  # check whether the mate data match the actual files or not
