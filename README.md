@@ -2,99 +2,112 @@
 
 ## 介绍
 
-保存 [哔哩哔哩](https://www.bilibili.com/) 收藏的视频
+获取在 [哔哩哔哩](https://www.bilibili.com/) 收藏夹中收藏的视频， 保存到本地磁盘，避免线上视频被删除。
 
-Save your favorite videos at [bilibili](https://www.bilibili.com/) to disk.
+Get videos in user created favorite folders on [bilibili](https://www.bilibili.com/), and save them to the local disk to
+prevent the online videos from being deleted.
 
 使用 [FFmpeg](http://ffmpeg.org/) 合并m4s音频和视频
 
 ## 运行
 
-```
+### 编辑配置
+
 编辑config.ini
 
+### 编辑元数据
+
+-o
+
+* add 增加目标收藏夹和条件
+* rm 删除目标收藏夹和条件
+* status 查看元数据
+
+-f 目标收藏夹
+
+-t 最早日期
+
+-l 时长限制
+
+```
+python main.py meta
+    -o [add | rm | status]
+    [-f <folderID1>[,<folderID2>,...,<folderIDn>]]
+    [-t <afterDate>]
+    [-l <lengthLimit>]
+```
+
+### 同步元数据对应的文件
+
+-o
+
+* status 查看需要下载的内容
+* run 执行同步操作
+
+```
 python main.py update
-
-python main.py clean
-
-python main.py check
-
+    -o [status | run]
 ```
 
 ## 文件保存结构
 
-* config.ini 配置文件：位于执行程序的当前目录
-
-
-* {output} \ 输出目录
+* output \ 输出目录
     * all \ 保存所有下载合并后的投稿文件
-        * [bv_id]\_ \([pageID]\) .[mp4|json|jpg] 视频、介绍文字、图片
+        * [bv_id] \( \_[pageID] \) .mp4 视频
+        * [bv_id].json 投稿信息
+        * [bv_id].jpg 封面图片
     * deleted \ 已被删除的投稿文件
-        * [title]\_ \([pageID]\_[pageTitle]\_\) [bv_id].[mp4|json|jpg] 指向视频、介绍文字、图片（标题均为转换后可用于文件名的标题）
-    * [userID] \\ [favFolderID] \\ 仅供浏览：分用户、收藏夹保存硬链接
-        * 同上
-
-
-* {mate} \ 元数据目录（可以和输出目录相同）
-    * media.json 所有本地投稿信息：未被删除和已被删除投稿，包括投稿编号和是否分P，最后更新时间。
-    * folder.json 本地收藏夹情况：各用户创建的收藏夹，和各收藏夹已下载的投稿ID
-    * lost.json 已丢失收藏的残余信息
-
-
-* {tmp} \ 临时目录（可以和输出目录相同）
-    * tmp_[audio|video].m4s 正在下载的视频音频文件（同时只有一个，因此无需分P）
-    * tmp_media \(_[pageID]\) .mp4 已合并的较靠前分P
+        * 同上3类的硬链接
+        * [bv_id]_[validatedTitle].name 投稿标题标记
+        * [bv_id] \( \_[pageID] \) \_[validatedPageTitle].name 投稿分P标题标记
+    * mate \ 元数据目录
+        * local.json 本地现有投稿的bv_id
+        * lost.json 已丢失收藏的残余信息
+        * aim.json 目标收藏夹和过滤条件
+    * tmp \ 临时目录
+        * tmp_[audio|video].m4s 正在下载的视频音频文件（同时只有一个，因此无需分P）
+        * tmp_media \(_[pageID]\) .mp4 已合并的较靠前分P
+        * tmp_[dateTime].log 日志临时文件
 
 ## 程序流程
 
-### clean 多余文件清理（已实现）
+### 元数据
 
-1. {output} \ 中，删除all和deleted中存在，但medias.json中不存在的以“BV”开头的文件
-2. {tmp} \ 中，删除以tmp开头的所有文件。
+#### 增加收藏夹
 
-### check 检查元数据完整性（暂未实现）
+读取aim，加入新收藏夹和筛选条件
 
-1. 检查media和folder中的内容，在磁盘上是否存在
+#### 删除收藏夹
 
-2. 如果不存在，移除记录或下载文件
+读取aim，删除指定编号的信息
 
-### update 更新收藏信息（部分实现）
+#### 显示所有元数据
 
-1. 确保配置存在并读取：检查是否存在config.ini，没有则写入默认配置并退出，有则读取：
-    1. 目录配置{output}{meta}{tmp}
-    2. 目标用户：用户ID，以逗号分隔
-    3. 文件限制配置：
-        1. 时间限制：只下载最后更新时间在此之后的投稿
-        2. 时长限制：最短直接下载，中等进行询问，最长直接跳过
-    4. 安全模式：不删除确定取消收藏的文件
-2. 确保目录存在：输出目录、元数据目录、临时目录如果没有则创建。
-3. 确保文件存在并读取：media.json、folder.json、lost.json如果没有则创建。
-    1. 从media中读取 **本地全部** 包括 **本地已收藏** 和 **本地被删除**
-    2. 从folder中读取之前已下载的用户收藏夹收藏
-4. 获取线上状态：对于所有用户，获取所有或指定收藏夹包含的投稿信息：
-   **线上全部** 包括 **线上可访问** 和 **线上被删除**
+读取aim，输出到屏幕
 
-5. 对投稿执行操作
-    1. 遗失投稿抢救信息，更新lost： **线上被删除** - **本地全部**
-    2. 新收藏投稿下载，每个投稿下载成功前后更新media： **线上可访问** - **本地全部**
-    4. 新被删除创建链接，更新media： **本地已收藏** 且 **线上被删除**
-    5. 新取消收藏无论是否被线上删除（暂未区分）删除，更新media： **本地已收藏** - **线上全部**
-    6. （暂未实现）新复活投稿删除链接，更新media： **线上可访问** 且 **本地已删除**
+### 更新
 
-6. 重建浏览文件夹
-    1. 删除旧用户文件夹
-    2. 根据当前获取到的有效用户收藏，建立目录树和硬链接
+#### 查看将要更新的视频信息
+
+* 读取aim.json
+* 按条件获取收藏夹中媒体信息，去除重复，输出到屏幕，分别显示新增和已丢失投稿
+
+#### 执行更新
+
+* 检查local的现有投稿，被删除的从all硬链接到deleted
+* 读取aim.json
+* 按条件获取收藏夹中媒体信息，去除重复，分为新增和已丢失投稿
+    * 新的投稿下载到all，同时更新local.json
+    * 新的已丢失信息写入lost.json
 
 ## TODO
 
 ### 功能
 
-- [x] 下载指定用户创建的指定公开收藏夹
-- [x] 增量下载新收藏的视频
-- [x] 跳过部分指定收藏夹
-- [ ] 支持下载指定日期后的内容
-- [ ] 支持询问和跳过指定时长以上的内容
-- [ ] 支持利用cookies下载私密收藏的视频
-- [ ] 检查元数据完整性
-- [x] 清除多余文件
+- [ ] 设置元数据
+- [ ] 显示元数据
+- [ ] 删除元数据
+- [ ] 查看将要更新的视频信息
+- [ ] 执行更新
+- [ ] 支持使用cookie下载私密收藏夹
 - [ ] 支持更新已下载但被up主更新的视频
