@@ -61,9 +61,10 @@ python main.py update
         * [bv_id]_[validatedTitle].name 投稿标题标记
         * [bv_id] \( \_[pageID] \) \_[validatedPageTitle].name 投稿分P标题标记
     * meta \ 元数据目录
-        * local.json 本地现有投稿的bv_id
-        * lost.json 已丢失收藏的残余信息
         * aim.json 目标收藏夹和过滤条件
+        * local.json 本地现有投稿的bv_id
+        * deleted.json 本地保存线上已删除的bv_id
+        * lost.json 已丢失收藏的残余信息
     * tmp \ 临时目录
         * tmp_[audio|video].m4s 正在下载的视频音频文件（同时只有一个，因此无需分P）
         * tmp_media \(_[pageID]\) .mp4 已合并的较靠前分P
@@ -107,7 +108,7 @@ python main.py update
 - [x] 设置元数据
 - [x] 显示元数据
 - [x] 删除元数据
-- [ ] 查看将要更新的视频信息
-- [ ] 执行更新
+- [x] 查看将要更新的视频信息
+- [x] 执行更新
 - [ ] 支持使用cookie下载私密收藏夹
 - [ ] 支持更新已下载但被up主更新的视频

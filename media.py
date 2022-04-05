@@ -1,19 +1,17 @@
 import logging
-
-import requests
-import json
 import os
 
-import config
+import file
+import request
 
 
 def get_media_url(bv_id: str, first_cid: int) -> [str, str]:
     logging.info('get media url ' + bv_id + ' ' + str(first_cid) + ' :')
     url = 'https://api.bilibili.com/x/player/playurl?qn=120&type=&otype=json&fourk=1&fnver=0&fnval=976&bvid=%s&cid=%d' \
           % (bv_id, first_cid)
-    req = requests.get(url, headers={'Connection': 'close'})
-    media_info = json.loads(req.text)['data']['dash']
-    audio_url = media_info['audio'][0]['base_url']  # TODO baseUrl?
+    resp = request.request_retry_json(url)
+    media_info = resp['data']['dash']
+    audio_url = media_info['audio'][0]['base_url']
     video_url = media_info['video'][0]['base_url']
     logging.info('get media url ' + bv_id + ' ' + str(first_cid) + ' finished.')
     return audio_url, video_url
@@ -21,13 +19,12 @@ def get_media_url(bv_id: str, first_cid: int) -> [str, str]:
 
 def download_file(bv_id: str, url: str, file_path: str):
     fake_referer_url = 'https://www.bilibili.com/video/' + bv_id
-    req = requests.get(url, headers={
+    resp = request.request_retry(url, headers={
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.55',
         'referer': fake_referer_url,
-        'range': 'bytes=0-',
-        'Connection': 'close'})
+        'range': 'bytes=0-'})
     with open(file_path, 'wb') as file:
-        file.write(req.content)
+        file.write(resp.content)
 
 
 def merge_media(audio_file_path: str, video_file_path: str, file_path: str):
@@ -43,12 +40,12 @@ def merge_media(audio_file_path: str, video_file_path: str, file_path: str):
 def download_media(bv_id: str, first_cid: int, media_path: str, page_id: str):
     audio_url, video_url = get_media_url(bv_id, first_cid)
     # download audio
-    audio_file_path = os.path.join(config.tmp_path, 'tmp_audio.m4s')
+    audio_file_path = os.path.join(file.tmp_path, 'tmp_audio.m4s')
     logging.info('download audio ' + bv_id + ' ' + str(first_cid) + ':')
     download_file(bv_id, audio_url, audio_file_path)
     logging.info('download audio ' + bv_id + ' ' + str(first_cid) + ' finished.')
     # download video
-    video_file_path = os.path.join(config.tmp_path, 'tmp_video.m4s')
+    video_file_path = os.path.join(file.tmp_path, 'tmp_video.m4s')
     logging.info('download video ' + bv_id + ' ' + str(first_cid) + ':')
     download_file(bv_id, video_url, video_file_path)
     logging.info('download video ' + bv_id + ' ' + str(first_cid) + ' finished.')
