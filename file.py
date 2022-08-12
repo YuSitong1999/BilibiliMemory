@@ -25,10 +25,14 @@ def ensure_json_list_exist(file_path: str):
 
 
 def ensure_directory_and_file():
+    """确保目录和元数据文件存在，不存在则创建
+
+    :return: None
+    """
     global output_path
     global all_path, deleted_path, meta_path, tmp_path
 
-    # ensure directory
+    # 所有投稿目录\已删除投稿目录\元数据目录\临时数据目录
     os.makedirs(output_path, exist_ok=True)
     all_path = os.path.join(output_path, 'all')
     deleted_path = os.path.join(output_path, 'deleted')
@@ -40,7 +44,7 @@ def ensure_directory_and_file():
     os.makedirs(meta_path, exist_ok=True)
     os.makedirs(tmp_path, exist_ok=True)
 
-    # ensure json file
+    # 确保元数据(现有、被删除备份、丢失投稿信息和下载目标目录)json文件存在
     global local_json, deleted_json, lost_json, aim_json
     local_json = os.path.join(meta_path, 'local.json')
     deleted_json = os.path.join(meta_path, 'deleted.json')
@@ -53,6 +57,9 @@ def ensure_directory_and_file():
 
 
 class MyEncoder(json.JSONEncoder):
+    """
+    集合输出为JSON
+    """
     def default(self, obj):
         if isinstance(obj, set):
             return str(obj)
@@ -130,11 +137,11 @@ def write_lost_json(lost: list[dict]):
 def create_link_from_all_to_deleted(bv_id: str, page: int):
     source_file_base = os.path.join(all_path, bv_id)
     destination_file_base = os.path.join(deleted_path, bv_id)
-    # cover jpg
+    # 封面图片
     os.link(source_file_base + '.jpg', destination_file_base + '.jpg')
-    # information
+    # 投稿信息
     os.link(source_file_base + '.json', destination_file_base + '.json')
-    # media pages
+    # 投稿所有分P
     if page == 1:
         os.link(source_file_base + '.mp4', destination_file_base + '.mp4')
     else:
@@ -143,7 +150,7 @@ def create_link_from_all_to_deleted(bv_id: str, page: int):
 
 
 def validate_file_name(name: str):
-    # replace / \ : * ? " < > | with _
+    # 用_替换不能用作文件名的字符 / \ : * ? " < > |
     return re.sub(r"[\/\\\:\*\?\"\<\>\|]", "_", name)
 
 
