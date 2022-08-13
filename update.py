@@ -9,18 +9,23 @@ import request
 from media import download_file, download_media
 
 
-def get_folder_all_medias(fid: int, media_count: int, limiters: list[file.Limiter]) -> tuple[list, list]:
+def check_online_available(bv_id: str) -> bool:
+    url = api.generate_media_pages_url(bv_id)
+    resp = request.request_retry_json(url)
+    return resp['code'] == 0
+
+
+def get_folder_all_medias(fid: int, media_count: int, limiters: list[file.Limiter]) -> list:
     """
     获取线上符合要求的所有投稿信息
     :param fid: 收藏夹id
     :param media_count: 投稿数量
     :param limiters: 筛选条件
-    :return: 线上仍有效和已失效的投稿信息
+    :return: 线上符合要求投稿信息
     """
 
     page_count = math.ceil(media_count / 20)
-    exists_medias = []
-    deleted_medias = []
+    medias = []
     for page_id in range(page_count):
         # B站系统限制，每次获取一页
         url = api.generate_fav_content_url(fid, page_id)
@@ -28,17 +33,14 @@ def get_folder_all_medias(fid: int, media_count: int, limiters: list[file.Limite
         if resp['code'] != 0:
             logging.error('get favorite folder error: ' + str(fid))
             continue
-        medias = []
         for media in resp['data']['medias']:
             for limiter in limiters:
                 if media['fav_time'] >= limiter.after and media['duration'] <= limiter.max_duration:
                     medias.append(media)
                     break
-        exists_medias += [media for media in medias if media['title'] != '已失效视频']
-        deleted_medias += [media for media in medias if media['title'] == '已失效视频']
         time.sleep(1)
 
-    return exists_medias, deleted_medias
+    return medias
 
 
 def get_media_all_pages(bv_id: str) -> list[dict]:
@@ -64,74 +66,72 @@ def main():
     # 本地所有备份的bv号
     local_bv_id_set = file.read_local_json()
     # 已被删除备份的bv号
-    deleted_bv_id_set = file.read_deleted_json()
+    local_deleted_bv_id_set = file.read_deleted_json()
     # 未及时备份被删投稿的残余信息和bv号
-    lost_list = file.read_lost_json()
-    lost_bv_id_set: set[str] = set([lost['bv_id'] for lost in lost_list])
+    local_lost_list = file.read_lost_json()
+    local_lost_bv_id_set: set[str] = set([lost['bv_id'] for lost in local_lost_list])
 
-    new_favorite_medias = []
-    new_lost_medias = []
-    new_favorite_medias_id = set[str]()
-    new_deleted_medias_id = set[str]()
-    new_lost_medias_id = set[str]()
+    online_bv_id_set = set[str]()
+    online_deleted_bv_id_set = set[str]()
+    all_medias = dict[str, dict]()
+
     for aim in aims:
-        exists_medias, deleted_medias = get_folder_all_medias(aim.fid, aim.media_count, aim.limiters)
-        # 新收藏投稿信息（去重）：本地没有，线上可用
-        new_favorite_medias += [media for media in exists_medias if
-                                media['bv_id'] not in local_bv_id_set and
-                                media['bv_id'] not in new_favorite_medias_id]
-        # 新收藏投稿bv
-        new_favorite_medias_id.update([media['bv_id'] for media in exists_medias if
-                                       media['bv_id'] not in local_bv_id_set])
+        medias = get_folder_all_medias(aim.fid, aim.media_count, aim.limiters)
+        for media in medias:
+            bv_id = media['bv_id']
+            all_medias[bv_id] = media
+            if media['title'] != '已失效视频':
+                online_bv_id_set.add(bv_id)
+            else:
+                online_deleted_bv_id_set.add(bv_id)
 
-        # 已备份新删除投稿bv：本地有，线上不可用
-        new_deleted_medias_id.update([media['bv_id'] for media in deleted_medias if
-                                      media['bv_id'] in local_bv_id_set and
-                                      media['bv_id'] not in deleted_bv_id_set])
+    # 新收藏: 本地无，线上有
+    new_favorite_medias_id = online_bv_id_set.difference(local_bv_id_set)
+    new_favorite_medias = [all_medias[bv_id] for bv_id in new_favorite_medias_id]
 
-        # 未备份新删除投稿残余信息
-        new_lost_medias += [media for media in deleted_medias if
-                            media['bv_id'] not in lost_bv_id_set and
-                            media['bv_id'] not in new_lost_medias_id]
-        # 未备份新删除投稿bv
-        new_lost_medias_id.update([media['bv_id'] for media in deleted_medias if
-                                   media['bv_id'] not in lost_bv_id_set])
+    # 新删除：1本地有，线上残留记录
+    new_deleted_medias_id = local_bv_id_set.intersection(online_deleted_bv_id_set)
+    # 新删除：2本地有，线上没有收藏且被删除
+    for bv_id in local_bv_id_set.difference(online_bv_id_set).difference(online_deleted_bv_id_set):
+        if not check_online_available(bv_id):
+            new_deleted_medias_id.add(bv_id)
+
+    # 新丢失：本地无，线上残留记录
+    new_lost_medias_id = online_deleted_bv_id_set.difference(local_bv_id_set).difference(local_lost_bv_id_set)
+    new_lost_medias = [all_medias[bv_id] for bv_id in new_lost_medias_id]
 
     # 显示本次更新目标
     new_favorite_count = len(new_favorite_medias_id)
     new_deleted_count = len(new_deleted_medias_id)
     new_lost_count = len(new_lost_medias_id)
-    logging.info('new favorite: %d new deleted: %d new lost: %d' %
-                 (new_favorite_count, new_deleted_count, new_lost_count))
+    logging.info(f'新收藏: {new_favorite_count} 新删除: {new_deleted_count} 新丢失: {new_lost_count}')
 
-    # 读取已备份新删除投稿信息
+    # 读取新删除投稿信息
     new_deleted_medias = [file.read_media_json(bv_id) for bv_id in new_deleted_medias_id]
 
     def output_media(media):
-        logging.info('title: %s duration: %d' % (media['title'], media['duration']))
+        logging.info(f'标题: {media["title"]} 时长: {media["duration"]}')
 
-    if new_favorite_count != 0:
-        logging.info('新收藏-----------')
-        [output_media(media) for media in new_favorite_medias]
-    if new_deleted_count != 0:
-        logging.info('新删除-----------')
-        [output_media(media) for media in new_deleted_medias]
-    if new_lost_count != 0:
-        logging.info('新丢失-----------')
-        [output_media(media) for media in new_lost_medias]
+    logging.info('新收藏-----------')
+    [output_media(media) for media in new_favorite_medias]
+    logging.info('新删除-----------')
+    [output_media(media) for media in new_deleted_medias]
+    logging.info('新丢失-----------')
+    [output_media(media) for media in new_lost_medias]
 
     if new_favorite_count + new_deleted_count + new_lost_count == 0:
         logging.info('没有新收藏、新删除和新丢失！')
         return
 
     # 决定是否执行
-    choose = input('是否执行更新？输入n不执行').strip().lower()
-    if choose != '' and choose[0].lower() == 'n':
+    choose = input('是否执行更新？输入n不执行，否则执行').strip()
+    if len(choose) == 1 and choose[0] == 'n':
         return
 
-    # 保存未备份已删除投稿残余信息
-    file.write_lost_json(lost_list + new_lost_medias)
+    # 更新已丢失
+    file.write_lost_json(local_lost_list + new_lost_medias)
 
+    # 更新已删除
     for media in new_deleted_medias:
         # 链接已备份新删除投稿到单独文件夹
         file.create_link_from_all_to_deleted(media['bv_id'], media['page'])
@@ -139,10 +139,10 @@ def main():
         file.create_name_file(media['bv_id'], media['page'], media['title'],
                               [page['part'] for page in media['pages']])
         # 每次更新已备份已删除bv
-        deleted_bv_id_set.add(media['bv_id'])
-        file.write_deleted_json(list[str](deleted_bv_id_set))
+        local_deleted_bv_id_set.add(media['bv_id'])
+        file.write_deleted_json(list[str](local_deleted_bv_id_set))
 
-    # 更新备份未删除投稿到本地
+    # 更新新收藏
     for media in new_favorite_medias:
         pages: list[dict] = get_media_all_pages(media['bv_id'])
         bv_id = media['bv_id']
