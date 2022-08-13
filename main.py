@@ -170,11 +170,11 @@ def update_main(argv: list[str]):
                                       media['bv_id'] not in deleted_bv_id_set])
         # 未备份新删除投稿残余信息
         new_lost_medias += [media for media in deleted_medias if
-                            media['bv_id'] in lost_bv_id_set and
+                            media['bv_id'] not in lost_bv_id_set and
                             media['bv_id'] not in new_lost_medias_id]
         # 未备份新删除投稿bv
         new_lost_medias_id.update([media['bv_id'] for media in deleted_medias if
-                                   media['bv_id'] in lost_bv_id_set])
+                                   media['bv_id'] not in lost_bv_id_set])
 
     # 显示本次更新目标
     new_favorite_count = len(new_favorite_medias_id)
