@@ -3,6 +3,7 @@ import os
 import re
 import time
 
+import api
 import request
 
 output_path: str = 'output'
@@ -60,6 +61,7 @@ class MyEncoder(json.JSONEncoder):
     """
     集合输出为JSON
     """
+
     def default(self, obj):
         if isinstance(obj, set):
             return str(obj)
@@ -71,8 +73,7 @@ class Aim:
         self.fid = fid
         self.after = after
         self.limit = limit
-        url = 'https://api.bilibili.com/x/v3/fav/resource/list?media_id=%d&pn=1&ps=20&keyword=&order=mtime&type=0&tid' \
-              '=0&platform=web&jsonp=jsonp' % fid
+        url = api.generate_fav_url(fid)
         resp = request.request_retry_json(url)
         self.title = resp['data']['info']['title']
         self.media_count = resp['data']['info']['media_count']

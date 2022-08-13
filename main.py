@@ -5,6 +5,7 @@ import os
 import sys
 import time
 
+import api
 import file
 import request
 
@@ -21,16 +22,12 @@ def get_folder_all_medias(fid: int, media_count: int, after: int, limit: int) ->
     :return: 线上仍有效和已失效的投稿信息
     """
 
-    def generate_url(page_number: int):
-        return 'https://api.bilibili.com/x/v3/fav/resource/list?ps=20&keyword=&order=mtime' \
-               '&type=0&tid=0&platform=web&jsonp=jsonp&media_id=%d&pn=%d' % (fid, page_number)
-
     page_count = math.ceil(media_count / 20)
     exists_medias = []
     deleted_medias = []
     for page_id in range(page_count):
         # B站系统限制，每次获取一页
-        url = generate_url(page_id)
+        url = api.generate_fav_content_url(fid, page_id)
         resp = request.request_retry_json(url)
         if resp['code'] != 0:
             logging.error('get favorite folder error: ' + str(fid))
@@ -45,7 +42,7 @@ def get_folder_all_medias(fid: int, media_count: int, after: int, limit: int) ->
 
 
 def get_media_all_pages(bv_id: str) -> list[dict]:
-    url = 'https://api.bilibili.com/x/player/pagelist?jsonp=jsonp&bvid=%s' % bv_id
+    url = api.generate_media_pages_url(bv_id)
     resp = request.request_retry_json(url)
     if resp['code'] == -404:
         logging.error('media all pages not find' + bv_id)

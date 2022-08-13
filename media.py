@@ -1,26 +1,9 @@
 import logging
 import os
-
 import file
 import request
 
-
-def get_media_url(bv_id: str, first_cid: int) -> [str, str]:
-    """
-    获取投稿的音频、视频URL
-    :param bv_id: bv号
-    :param first_cid: 首P id
-    :return: 音频、视频URL
-    """
-    logging.info('get media url ' + bv_id + ' ' + str(first_cid) + ' :')
-    url = 'https://api.bilibili.com/x/player/playurl?qn=120&type=&otype=json&fourk=1&fnver=0&fnval=976&bvid=%s&cid=%d' \
-          % (bv_id, first_cid)
-    resp = request.request_retry_json(url)
-    media_info = resp['data']['dash']
-    audio_url = media_info['audio'][0]['base_url']
-    video_url = media_info['video'][0]['base_url']
-    logging.info('get media url ' + bv_id + ' ' + str(first_cid) + ' finished.')
-    return audio_url, video_url
+import api
 
 
 def download_file(bv_id: str, url: str, file_path: str):
@@ -44,7 +27,7 @@ def merge_media(audio_file_path: str, video_file_path: str, file_path: str):
 
 
 def download_media(bv_id: str, first_cid: int, media_path: str, page_id: str):
-    audio_url, video_url = get_media_url(bv_id, first_cid)
+    audio_url, video_url = api.generate_media_audio_video_url(bv_id, first_cid)
     # 下载音频
     audio_file_path = os.path.join(file.tmp_path, 'tmp_audio.m4s')
     logging.info('download audio ' + bv_id + ' ' + str(first_cid) + ':')
