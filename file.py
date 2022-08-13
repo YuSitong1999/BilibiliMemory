@@ -68,25 +68,39 @@ class MyEncoder(json.JSONEncoder):
         return obj.__dict__
 
 
-class Aim:
-    def __init__(self, fid: int, after: int, limit: int):
-        self.fid = fid
+class Limiter:
+    def __init__(self, after: int, max_duration: int):
         self.after = after
-        self.limit = limit
+        self.max_duration = max_duration
+
+    def __str__(self):
+        return f'(after: {time.strftime("%Y-%m-%d", time.localtime(self.after))},' \
+               f' max_duration: {self.max_duration})'
+
+
+class Aim:
+    def __init__(self, fid: int, limiters: list[Limiter]):
+        self.fid = fid
+        self.limiters = limiters
         url = api.generate_fav_url(fid)
         resp = request.request_retry_json(url)
         self.title = resp['data']['info']['title']
         self.media_count = resp['data']['info']['media_count']
 
     def __str__(self):
-        return 'fid:%d after:%s limit:%d title:%s' % \
-               (self.fid, time.strftime('%Y-%m-%d', time.localtime(self.after)), self.limit, self.title)
+        limiters = ''
+        for i in range(len(self.limiters)):
+            limiters += f'\t({i + 1}) {self.limiters[i]}\n'
+        return f'title:{self.title} media_count:{self.media_count} fid:{self.fid}\n{limiters}'
 
 
 def read_aim_json() -> list[Aim]:
     with open(aim_json, encoding='utf-8') as f:
         aims: list[dict] = json.load(f)
-        return [Aim(aim['fid'], aim['after'], aim['limit']) for aim in aims]
+        return [Aim(aim['fid'],
+                    [Limiter(limiter['after'], limiter['max_duration'])
+                     for limiter in aim['limiters']]
+                    ) for aim in aims]
 
 
 def write_aim_json(aims: list[Aim]):

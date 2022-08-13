@@ -12,13 +12,12 @@ import request
 from media import download_media, download_file
 
 
-def get_folder_all_medias(fid: int, media_count: int, after: int, limit: int) -> tuple[list, list]:
+def get_folder_all_medias(fid: int, media_count: int, limiters: list[file.Limiter]) -> tuple[list, list]:
     """
     获取线上符合要求的所有投稿信息
     :param fid: 收藏夹id
     :param media_count: 投稿数量
-    :param after: 发布时间在其之后
-    :param limit: 时长限制
+    :param limiters: 筛选条件
     :return: 线上仍有效和已失效的投稿信息
     """
 
@@ -32,8 +31,12 @@ def get_folder_all_medias(fid: int, media_count: int, after: int, limit: int) ->
         if resp['code'] != 0:
             logging.error('get favorite folder error: ' + str(fid))
             continue
-        medias = [media for media in resp['data']['medias']
-                  if media['fav_time'] >= after and media['duration'] <= limit]
+        medias = []
+        for media in resp['data']['medias']:
+            for limiter in limiters:
+                if media['fav_time'] >= limiter.after and media['duration'] <= limiter.max_duration:
+                    medias.append(media)
+                    break
         exists_medias += [media for media in medias if media['title'] != '已失效视频']
         deleted_medias += [media for media in medias if media['title'] == '已失效视频']
         time.sleep(1)
@@ -53,59 +56,114 @@ def get_media_all_pages(bv_id: str) -> list[dict]:
     return [page for page in resp['data']]
 
 
-def meta_main(argv: list[str]):
+def aim_rm(argv: list[str], aims: list[file.Aim]) -> list[file.Aim]:
+    if len(argv) != 2:
+        print(f'参数个数错误!\n{command_aim}')
+        return aims
+
+    aim_fav_number = int(argv[0])
+    aim_fav_number -= 1
+    if aim_fav_number < 0 or aim_fav_number >= len(aims):
+        print(f'目标收藏夹{aim_fav_number}不存在!')
+        return aims
+
+    aim_limiters_number_set = set[int]()
+    for s in argv[1].split(','):
+        if not s.isnumeric():
+            print(f'参数{s}错误,已跳过')
+            continue
+        number = int(s) - 1
+        if number < 0 or number >= len(aims[aim_fav_number].limiters):
+            print(f'参数{number}超出范围,已跳过')
+            continue
+        aim_limiters_number_set.add(number)
+
+    aims[aim_fav_number].limiters = [aims[aim_fav_number].limiters[i]
+                                     for i in range(len(aims[aim_fav_number].limiters))
+                                     if i not in aim_limiters_number_set]
+    return aims
+
+
+def aim_add(argv: list[str], aims: list[file.Aim]) -> list[file.Aim]:
+    if len(argv) < 1:
+        print(f'参数个数错误!\n{command_aim}')
+        return aims
+
+    fav_fid_set = set[int]()
+    for s in argv[0].split(','):
+        if not s.isnumeric():
+            print(f'参数{s}错误,已跳过')
+            continue
+        fav_fid_set.add(int(s))
+
+    argv = argv[1:]
+
+    try:
+        opts, args = getopt.getopt(argv, "a:d:", [])
+    except getopt.GetoptError:
+        print(f'参数错误{command_aim}')
+        sys.exit(1)
+
+    after_timestamp: int = 0
+    max_duration: int = 36000
+    for opt, arg in opts:
+        if opt == '-a':
+            after_timestamp = math.floor(time.mktime(time.strptime(arg, '%Y-%m-%d')))
+        elif opt == '-d':
+            max_duration = int(arg)
+
+    limiter = file.Limiter(after_timestamp, max_duration)
+    for i in range(len(aims)):
+        if aims[i].fid in fav_fid_set:
+            aims[i].limiters.append(limiter)
+            fav_fid_set.remove(aims[i].fid)
+
+    for fid in fav_fid_set:
+        aims.append(file.Aim(fid, [limiter]))
+    return aims
+
+
+command_aim = '''
+    python main.py aim
+        status
+        add <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-t <最早发布时间>] [-l <投稿时长>]
+        rm <备份目标收藏夹序号> [备份目标条件序号1,...,备份目标条件序号N]
+    '''
+
+
+def aim_main(argv: list[str]):
     """
-    元数据
+    备份目标
     :param argv:
     :return:
     """
+
     operation_status = 'status'
     operation_add = 'add'
     operation_rm = 'rm'
 
-    try:
-        opts, args = getopt.getopt(argv, "o:f:t:l:", [])
-    except getopt.GetoptError:
-        print('''
-    python main.py meta
-        -o [add | rm | status]
-        [-f <folderID1>[,<folderID2>,...,<folderIDn>]]
-        [-t <afterDate>]
-        [-l <lengthLimit>]
-    ''')
-        sys.exit(2)
-    operation: str = operation_status
-    folders_id: list[int] = []
-    after_date: int = 0
-    length_limit: int = 3600
-    for opt, arg in opts:
-        if opt == '-o':
-            if arg in (operation_add, operation_rm):
-                operation = arg
-        elif opt == '-f':
-            folders_id = [int(s) for s in arg.split(',') if s.isnumeric()]
-        elif opt == '-t':
-            after_date = math.floor(time.mktime(time.strptime(arg, '%Y-%m-%d')))
-        elif opt == '-l':
-            length_limit = int(arg) if arg.isnumeric() else length_limit
+    if len(argv) == 0 or argv[0] not in (operation_add, operation_rm, operation_status):
+        print(f'命令"{argv}"不受支持，请输入支持的命令:\n{command_aim}')
+        return
+
+    operation = argv[0]
+    argv = argv[1:]
     aims = file.read_aim_json()
-    # 查看当前目标
-    if operation == operation_status:
-        aims_len = len(aims)
-        if aims_len == 0:
-            print('aim folder id list is empty!')
-        for i in range(aims_len):
-            print('%d: %s' % (i + 1, aims[i]))
-        return
-    # 增加或删除收藏夹到备份目标，不为空
-    if len(folders_id) == 0:
-        print('folder id list is empty!')
-        return
+
+    # 删除备份目标条目
+    if operation == operation_rm:
+        aims = aim_rm(argv, aims)
+
     if operation == operation_add:
-        for fid in folders_id:
-            aims.append(file.Aim(fid, after_date, length_limit))
-    else:
-        aims = [aim for aim in aims if aim.fid not in folders_id]
+        aims = aim_add(argv, aims)
+
+    # 查看当前备份目标
+    aims_len = len(aims)
+    print(aims)
+    if aims_len == 0:
+        print('查看当前目标收藏夹为空!')
+    for i in range(aims_len):
+        print(f'{i + 1}: {aims[i]}')
 
     # 更新备份目标收藏夹
     file.write_aim_json(aims)
@@ -153,7 +211,7 @@ def update_main(argv: list[str]):
     new_deleted_medias_id = set[str]()
     new_lost_medias_id = set[str]()
     for aim in aims:
-        exists_medias, deleted_medias = get_folder_all_medias(aim.fid, aim.media_count, aim.after, aim.limit)
+        exists_medias, deleted_medias = get_folder_all_medias(aim.fid, aim.media_count, aim.limiters)
         # 新收藏投稿信息（去重）：本地没有，线上可用
         new_favorite_medias += [media for media in exists_medias if
                                 media['bv_id'] not in local_bv_id_set and
@@ -269,10 +327,8 @@ if __name__ == '__main__':
     set_log()
 
     opt = sys.argv[1]
-    if opt == 'meta':
-        logging.info('YOU CHOSE META')
-        logging.info('------------------')
-        meta_main(sys.argv[2:])
+    if opt == 'aim':
+        aim_main(sys.argv[2:])
     elif opt == 'update':
         logging.info('YOU CHOSE UPDATE')
         logging.info('------------------')
