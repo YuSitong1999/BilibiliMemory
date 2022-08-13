@@ -169,31 +169,11 @@ def aim_main(argv: list[str]):
     file.write_aim_json(aims)
 
 
-def update_main(argv: list[str]):
+def update_main():
     """
-    执行更新备份相关操作
-    :param argv:参数
+    执行更新备份
     :return: None
     """
-    OPERATION_STATUS = 'status'
-    OPERATION_RUN = 'run'
-
-    try:
-        opts, args = getopt.getopt(argv, "o:", [])
-    except getopt.GetoptError:
-        print('''
-    python main.py meta
-        -o [add | rm | status]
-        [-f <folderID1>[,<folderID2>,...,<folderIDn>]]
-        [-t <afterDate>]
-        [-l <lengthLimit>]
-    ''')
-        sys.exit(2)
-    operation: str = OPERATION_STATUS
-    for opt, arg in opts:
-        if opt == '-o':
-            if arg == OPERATION_RUN:
-                operation = arg
 
     aims = file.read_aim_json()
 
@@ -219,10 +199,12 @@ def update_main(argv: list[str]):
         # 新收藏投稿bv
         new_favorite_medias_id.update([media['bv_id'] for media in exists_medias if
                                        media['bv_id'] not in local_bv_id_set])
+
         # 已备份新删除投稿bv：本地有，线上不可用
         new_deleted_medias_id.update([media['bv_id'] for media in deleted_medias if
                                       media['bv_id'] in local_bv_id_set and
                                       media['bv_id'] not in deleted_bv_id_set])
+
         # 未备份新删除投稿残余信息
         new_lost_medias += [media for media in deleted_medias if
                             media['bv_id'] not in lost_bv_id_set and
@@ -245,24 +227,23 @@ def update_main(argv: list[str]):
         logging.info('title: %s duration: %d' % (media['title'], media['duration']))
 
     if new_favorite_count != 0:
-        logging.info('new favorite-----------')
+        logging.info('新收藏-----------')
         [output_media(media) for media in new_favorite_medias]
     if new_deleted_count != 0:
-        logging.info('new deleted-----------')
+        logging.info('新删除-----------')
         [output_media(media) for media in new_deleted_medias]
     if new_lost_count != 0:
-        logging.info('new lost-----------')
+        logging.info('新丢失-----------')
         [output_media(media) for media in new_lost_medias]
 
     if new_favorite_count + new_deleted_count + new_lost_count == 0:
-        logging.info('no new favorite, deleted or lost media can be updated!')
+        logging.info('没有新收藏、新删除和新丢失！')
         return
 
-    # 查询更新目标后，也可选择执行
-    if operation == OPERATION_STATUS:
-        choose = input('download, yes(default) or no?').strip().lower()
-        if choose != '' and choose[0] == 'n':
-            return
+    # 决定是否执行
+    choose = input('是否执行更新？输入n不执行').strip().lower()
+    if choose != '' and choose[0].lower() == 'n':
+        return
 
     # 保存未备份已删除投稿残余信息
     file.write_lost_json(lost_list + new_lost_medias)
@@ -330,6 +311,4 @@ if __name__ == '__main__':
     if opt == 'aim':
         aim_main(sys.argv[2:])
     elif opt == 'update':
-        logging.info('YOU CHOSE UPDATE')
-        logging.info('------------------')
-        update_main(sys.argv[2:])
+        update_main()

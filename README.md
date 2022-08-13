@@ -30,14 +30,10 @@ python main.py aim
 
 ### 同步备份目标对应的文件
 
--o
-
-* status 查看需要下载的内容
-* run 执行同步操作
+查看需要执行的操作，确认后执行
 
 ```
 python main.py update
-    -o [status | run]
 ```
 
 ## 文件保存结构
