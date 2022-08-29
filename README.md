@@ -2,12 +2,14 @@
 
 ## 介绍
 
-获取在 [哔哩哔哩](https://www.bilibili.com/) 收藏夹中收藏的视频， 保存到本地磁盘，避免线上视频被删除。
+将 [哔哩哔哩（Bilibili，又称B站）](https://www.bilibili.com/) 收藏夹中收藏的视频， 下载备份到本地磁盘，避免线上视频被删除。
 
 Get videos in user created favorite folders on [bilibili](https://www.bilibili.com/), and save them to the local disk to
 prevent the online videos from being deleted.
 
 使用 [FFmpeg](http://ffmpeg.org/) 合并m4s音频和视频
+
+详细介绍：[B站收藏备份工具设计和实现](https://blog.csdn.net/u010834463/article/details/126310063)
 
 ## 运行
 
@@ -76,7 +78,7 @@ python main.py update
 
 ### 更新
 
-#### 查看更新执行计划
+#### 查看更新计划并执行
 
 * 读取更新备份目标aim.json
 * 读取本地已备份投稿和已删除投稿信息
@@ -87,17 +89,15 @@ python main.py update
     * 新丢失（本地不存在，线上有残留记录）：下载残留记录
 * 询问是否执行更新
 
-#### 执行更新
-
-* 同“查看更新执行计划”，不询问直接执行更新（假设整个过程中目标收藏夹内容不变）
-
 ## TODO
 
-### 功能
+根据使用体验争取不时更新 ~~如果有时间的话~~
 
 - [x] 增加、显示、删除备份目标
 - [x] 查看将要更新的视频信息
 - [x] 执行更新
+- [ ] 支持强制备份指定BV的投稿
+- [ ] 对于有阅读价值的数据，保存为JSON的同时，另行保存为CSV
 - [ ] 支持配置目录
 - [ ] 另行按收藏夹保存全部投稿
 - [ ] 支持使用cookie下载私密收藏夹
