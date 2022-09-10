@@ -151,6 +151,360 @@ https://api.bilibili.com/x/v3/fav/resource/list?ps=20& media_id={收藏夹ID}&pn
 }
 ```
 
+### 单一投稿信息
+
+https://api.bilibili.com/x/web-interface/view/detail? bvid= {视频bvid}
+
+返回值（有删减）
+
+```json
+{
+  "code": 0,
+  "message": "0",
+  "ttl": 1,
+  "data": {
+    "View": {
+      "bvid": "BV1Fh411n7QJ",
+      "aid": 208583612,
+      "videos": 1,
+      "tid": 65,
+      "tname": "网络游戏",
+      "copyright": 1,
+      "pic": "http://i1.hdslb.com/bfs/archive/2bd158c70f736c9d9138971ee77ec4a8df4c9163.jpg",
+      "title": "三国杀“杀疯了”，既感谢联通之后，三国杀掌握了流量秘密",
+      "pubdate": 1634182484,
+      "ctime": 1634182484,
+      "desc": "",
+      "desc_v2": null,
+      "state": 0,
+      "duration": 33,
+      "rights": {
+        "bp": 0,
+        "elec": 0,
+        "download": 1,
+        "movie": 0,
+        "pay": 0,
+        "hd5": 0,
+        "no_reprint": 1,
+        "autoplay": 1,
+        "ugc_pay": 0,
+        "is_cooperation": 0,
+        "ugc_pay_preview": 0,
+        "no_background": 0,
+        "clean_mode": 0,
+        "is_stein_gate": 0,
+        "is_360": 0,
+        "no_share": 0,
+        "arc_pay": 0,
+        "free_watch": 0
+      },
+      "owner": {
+        "mid": 1075155360,
+        "name": "阿白解说呦",
+        "face": "http://i0.hdslb.com/bfs/face/8ada069040b6f1af0e650c085811ebd98cdd0efc.jpg"
+      },
+      "stat": {
+        "aid": 208583612,
+        "view": 325270,
+        "danmaku": 74,
+        "reply": 205,
+        "favorite": 610,
+        "coin": 44,
+        "share": 90,
+        "now_rank": 0,
+        "his_rank": 0,
+        "like": 2039,
+        "dislike": 0,
+        "evaluation": "",
+        "argue_msg": ""
+      },
+      "dynamic": "",
+      "cid": 424810943,
+      "dimension": {
+        "width": 1920,
+        "height": 1080,
+        "rotate": 0
+      },
+      "premiere": null,
+      "teenage_mode": 0,
+      "is_chargeable_season": false,
+      "is_story": false,
+      "no_cache": false,
+      "pages": [
+        {
+          "cid": 424810943,
+          "page": 1,
+          "from": "vupload",
+          "part": "三国杀“杀疯了”，既感谢联通之后，三国杀掌握了流量秘密",
+          "duration": 33,
+          "vid": "",
+          "weblink": "",
+          "dimension": {
+            "width": 1920,
+            "height": 1080,
+            "rotate": 0
+          },
+          "first_frame": "http://i2.hdslb.com/bfs/storyff/n211014a2tck363aaidn03dgrtnijca1_firsti.jpg"
+        }
+      ],
+      "subtitle": {
+        "allow_submit": true,
+        "list": []
+      },
+      "is_season_display": false,
+      "user_garb": {
+        "url_image_ani_cut": ""
+      },
+      "honor_reply": {},
+      "like_icon": ""
+    },
+    "Card": {
+      "card": {
+        "mid": "1075155360",
+        "name": "阿白解说呦",
+        "approve": false,
+        "sex": "保密",
+        "rank": "10000",
+        "face": "http://i0.hdslb.com/bfs/face/8ada069040b6f1af0e650c085811ebd98cdd0efc.jpg",
+        "face_nft": 0,
+        "face_nft_type": 0,
+        "DisplayRank": "0",
+        "regtime": 0,
+        "spacesta": 0,
+        "birthday": "",
+        "place": "",
+        "description": "",
+        "article": 0,
+        "attentions": [],
+        "fans": 7468,
+        "friend": 33,
+        "attention": 33,
+        "sign": "追不到妹妹，那你就追我吧",
+        "level_info": {
+          "current_level": 5,
+          "current_min": 0,
+          "current_exp": 0,
+          "next_exp": 0
+        },
+        "pendant": {
+          "pid": 0,
+          "name": "",
+          "image": "",
+          "expire": 0,
+          "image_enhance": "",
+          "image_enhance_frame": ""
+        },
+        "nameplate": {
+          "nid": 0,
+          "name": "",
+          "image": "",
+          "image_small": "",
+          "level": "",
+          "condition": ""
+        },
+        "Official": {
+          "role": 0,
+          "title": "",
+          "desc": "",
+          "type": -1
+        },
+        "official_verify": {
+          "type": -1,
+          "desc": ""
+        },
+        "vip": {
+          "type": 1,
+          "status": 0,
+          "due_date": 1646064000000,
+          "vip_pay_type": 0,
+          "theme_type": 0,
+          "label": {
+            "path": "",
+            "text": "",
+            "label_theme": "",
+            "text_color": "",
+            "bg_style": 0,
+            "bg_color": "",
+            "border_color": "",
+            "use_img_label": true,
+            "img_label_uri_hans": "",
+            "img_label_uri_hant": "",
+            "img_label_uri_hans_static": "https://i0.hdslb.com/bfs/vip/d7b702ef65a976b20ed854cbd04cb9e27341bb79.png",
+            "img_label_uri_hant_static": "https://i0.hdslb.com/bfs/activity-plat/static/20220614/e369244d0b14644f5e1a06431e22a4d5/KJunwh19T5.png"
+          },
+          "avatar_subscript": 0,
+          "nickname_color": "",
+          "role": 0,
+          "avatar_subscript_url": "",
+          "tv_vip_status": 0,
+          "tv_vip_pay_type": 0,
+          "vipType": 1,
+          "vipStatus": 0
+        },
+        "is_senior_member": 0
+      },
+      "space": {
+        "s_img": "http://i1.hdslb.com/bfs/space/768cc4fd97618cf589d23c2711a1d1a729f42235.png",
+        "l_img": "http://i1.hdslb.com/bfs/space/cb1c3ef50e22b6096fde67febe863494caefebad.png"
+      },
+      "following": false,
+      "archive_count": 344,
+      "article_count": 0,
+      "follower": 7468,
+      "like_num": 1478584
+    },
+    "Tags": [
+      {
+        "tag_id": 7949,
+        "tag_name": "三国杀",
+        "cover": "http://i0.hdslb.com/bfs/tag/83eea7fb4d28ff827269841942c0ed7307055fd4.png",
+        "head_cover": "http://i0.hdslb.com/bfs/tag/f52c351e7aa6e55bd86c046d4afde5737ce0aa6d.png",
+        "content": "《三国杀》作为一款原创桌上游戏，有别于其他桌面游戏的最主要特色，就是身份系统。《三国杀》中共有4种身份：主公、反贼、忠臣、内奸。主公和忠臣的任务就是剿灭反贼，清除内奸；反贼的任务则是推翻主公。内奸则要在场上存在除主公以外的其他人物之时先清除其他人物，最后单挑主公。游戏开始时每个玩家随机抽取一张身份牌，抽到主公的玩家，要将自己的身份牌明示。其他人的身份牌不能被其他玩家看到。 （《三国杀》视频专辑由SGSreplay制作）\r\n ",
+        "short_content": "",
+        "type": 3,
+        "state": 0,
+        "ctime": 1436866637,
+        "count": {
+          "view": 0,
+          "use": 761326,
+          "atten": 49557
+        },
+        "is_atten": 0,
+        "likes": 0,
+        "hates": 0,
+        "attribute": 0,
+        "liked": 0,
+        "hated": 0,
+        "extra_attr": 0,
+        "music_id": "",
+        "tag_type": "new_channel",
+        "is_activity": false,
+        "color": "#FA5A58",
+        "alpha": 60,
+        "is_season": false,
+        "subscribed_count": 49557,
+        "archive_count": "58.9万",
+        "featured_count": 1310,
+        "jump_url": ""
+      }
+    ],
+    "Reply": {
+      "page": {
+        "acount": 205,
+        "count": 129,
+        "num": 1,
+        "size": 3
+      },
+      "replies": [
+        {
+          "rpid": 93988329360,
+          "oid": 208583612,
+          "type": 1,
+          "mid": 131856000,
+          "root": 0,
+          "parent": 0,
+          "dialog": 0,
+          "count": 51,
+          "rcount": 38,
+          "floor": 12,
+          "state": 0,
+          "fansgrade": 0,
+          "attr": 0,
+          "ctime": 1638449503,
+          "like": 807,
+          "action": 0,
+          "content": {
+            "message": "真破游戏真是成了游戏界的标杆，从来没见过一个游戏的玩家和游戏运营公司互相敌视成这样，",
+            "plat": 0,
+            "device": ""
+          },
+          "replies": null,
+          "assist": 0,
+          "show_follow": false
+        }
+      ]
+    },
+    "Related": [
+      {
+        "aid": 465964697,
+        "videos": 1,
+        "tid": 173,
+        "tname": "桌游棋牌",
+        "copyright": 1,
+        "pic": "http://i0.hdslb.com/bfs/archive/d125d5e6e78302c4dd017936b0004a978432c002.jpg",
+        "title": "《不要让女朋友玩三国杀》",
+        "pubdate": 1643103616,
+        "ctime": 1643103616,
+        "desc": "这么宠粉的up，不给个三连吗？",
+        "state": 0,
+        "duration": 25,
+        "mission_id": 314037,
+        "rights": {
+          "bp": 0,
+          "elec": 0,
+          "download": 0,
+          "movie": 0,
+          "pay": 0,
+          "hd5": 0,
+          "no_reprint": 1,
+          "autoplay": 1,
+          "ugc_pay": 0,
+          "is_cooperation": 0,
+          "ugc_pay_preview": 0,
+          "no_background": 0,
+          "arc_pay": 0,
+          "pay_free_watch": 0
+        },
+        "owner": {
+          "mid": 1852853432,
+          "name": "蒸姬智张",
+          "face": "http://i2.hdslb.com/bfs/face/65fc13089c38e229745f593c77cb59e8f5751a86.jpg"
+        },
+        "stat": {
+          "aid": 465964697,
+          "view": 447093,
+          "danmaku": 33,
+          "reply": 331,
+          "favorite": 1143,
+          "coin": 949,
+          "share": 150,
+          "now_rank": 0,
+          "his_rank": 0,
+          "like": 10174,
+          "dislike": 0
+        },
+        "dynamic": "小乔动皮是吧！",
+        "cid": 492277589,
+        "dimension": {
+          "width": 1920,
+          "height": 1080,
+          "rotate": 0
+        },
+        "short_link": "https://b23.tv/BV1JL411F7Xs",
+        "short_link_v2": "https://b23.tv/BV1JL411F7Xs",
+        "first_frame": "http://i0.hdslb.com/bfs/storyff/n220125a22mqqol885qajj3a0zdxhdca_firsti.jpg",
+        "bvid": "BV1JL411F7Xs",
+        "season_type": 0,
+        "is_ogv": false,
+        "ogv_info": null,
+        "rcmd_reason": ""
+      }
+    ],
+    "Spec": null,
+    "hot_share": {
+      "show": false,
+      "list": []
+    },
+    "elec": null,
+    "recommend": null,
+    "view_addit": {
+      "63": false,
+      "64": false
+    }
+  }
+}
+```
+
 ### 视频分p信息
 
 https://api.bilibili.com/x/player/pagelist?jsonp=jsonp& bvid={视频bvid}

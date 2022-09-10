@@ -28,6 +28,17 @@ def generate_fav_content_url(fid: int, page_number: int) -> str:
     return f'https://api.bilibili.com/x/v3/fav/resource/list?ps=20&media_id={fid}&pn={page_number}'
 
 
+def generate_media_detail_url(bv_id: str) -> str:
+    """
+    获取投稿信息
+    https://api.bilibili.com/x/web-interface/view/detail?
+        bvid={bv——id}
+    :param bv_id: 投稿bv号
+    :return: 获取投稿信息url
+    """
+    return f'https://api.bilibili.com/x/web-interface/view/detail?bvid={bv_id}'
+
+
 def generate_media_pages_url(bv_id: str) -> str:
     """
     获取投稿所有分P信息

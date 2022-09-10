@@ -91,21 +91,51 @@ class Aim:
         limiters = ''
         for i in range(len(self.limiters)):
             limiters += f'\t({i + 1}) {self.limiters[i]}\n'
-        return f'title:{self.title} media_count:{self.media_count} fid:{self.fid}\n{limiters}'
+        return f'收藏夹标题:{self.title} 投稿数:{self.media_count} 收藏夹id:{self.fid}\n{limiters}'
 
 
-def read_aim_json() -> list[Aim]:
+class AimMedia:
+    def __init__(self, bv_id: str):
+        self.typ = 'media'
+        self.bv_id = bv_id
+        url = api.generate_media_detail_url(bv_id)
+        resp = request.request_retry_json(url)
+        self.available = resp['code'] == 0
+        if self.available:
+            # 投稿标题
+            self.title = resp['data']['View']['title']
+            # 分P数量
+            self.media_count = len(resp['data']['View']['pages'])
+            self.duration = resp['data']['View']['duration']
+            self.pic = resp['data']['View']['pic']
+        else:
+            # 不可用
+            self.title = resp['data']['message']
+            self.media_count = 0
+            self.duration = 0
+
+    def __str__(self):
+        return f'投稿标题:{self.title} 投稿分P数:{self.media_count} 投稿bv id:{self.bv_id}'
+
+
+def read_aim_json() -> [list[Aim], list[AimMedia]]:
     with open(aim_json, encoding='utf-8') as f:
         aims: list[dict] = json.load(f)
-        return [Aim(aim['fid'],
-                    [Limiter(limiter['after'], limiter['max_duration'])
-                     for limiter in aim['limiters']]
-                    ) for aim in aims]
+        aim_favorites: list[Aim] = list[Aim]()
+        aim_medias: list[AimMedia] = list[AimMedia]()
+        for aim in aims:
+            if 'typ' not in aim.keys():
+                # 缺省为目标收藏夹
+                limiters = [Limiter(limiter['after'], limiter['max_duration']) for limiter in aim['limiters']]
+                aim_favorites.append(Aim(aim['fid'], limiters))
+            elif aim['typ'] == 'media':  # 目标投稿
+                aim_medias.append(AimMedia(aim['bv_id']))
+        return aim_favorites, aim_medias
 
 
-def write_aim_json(aims: list[Aim]):
+def write_aim_json(aim_favorites: list[Aim], aim_medias: list[AimMedia]):
     with open(aim_json, 'w', encoding='utf-8') as f:
-        json.dump(aims, f, cls=MyEncoder, ensure_ascii=False)
+        json.dump(aim_favorites + aim_medias, f, cls=MyEncoder, ensure_ascii=False)
 
 
 def read_local_json() -> set[str]:

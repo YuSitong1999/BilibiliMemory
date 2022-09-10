@@ -63,7 +63,7 @@ def main():
     :return: None
     """
 
-    aims = file.read_aim_json()
+    aim_favorites, aim_medias = file.read_aim_json()
 
     # 本地所有备份的bv号
     local_bv_id_set = file.read_local_json()
@@ -73,11 +73,13 @@ def main():
     local_lost_list = file.read_lost_json()
     local_lost_bv_id_set: set[str] = set([lost['bv_id'] for lost in local_lost_list])
 
+    # 线上有效投稿bv id
     online_bv_id_set = set[str]()
+    # 线上已被删除投稿bv id
     online_deleted_bv_id_set = set[str]()
     all_medias = dict[str, dict]()
 
-    for aim in aims:
+    for aim in aim_favorites:
         medias = get_folder_all_medias(aim.fid, aim.media_count, aim.limiters)
         for media in medias:
             bv_id = media['bv_id']
@@ -86,6 +88,15 @@ def main():
                 online_bv_id_set.add(bv_id)
             else:
                 online_deleted_bv_id_set.add(bv_id)
+
+    for aim in aim_medias:
+        bv_id = aim.bv_id
+        # FIXME 定义投稿数据字段
+        all_medias[bv_id] = {'title': aim.title, 'duration': aim.duration, 'bv_id': bv_id, 'cover': aim.pic}
+        if aim.available:
+            online_bv_id_set.add(bv_id)
+        else:
+            online_deleted_bv_id_set.add(bv_id)
 
     # 新收藏: 本地无，线上有
     new_favorite_medias_id = online_bv_id_set.difference(local_bv_id_set)
