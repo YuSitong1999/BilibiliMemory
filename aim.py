@@ -62,7 +62,7 @@ def aim_add(argv: list[str], aims: list[file.Aim]) -> list[file.Aim]:
         sys.exit(1)
 
     after_timestamp: int = 0
-    max_duration: int = 36000
+    max_duration: int = 0  # 缺省不限制投稿时长
     for opt, arg in opts:
         if opt == '-a':
             after_timestamp = math.floor(time.mktime(time.strptime(arg, '%Y-%m-%d')))

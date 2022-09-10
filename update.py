@@ -35,7 +35,9 @@ def get_folder_all_medias(fid: int, media_count: int, limiters: list[file.Limite
             continue
         for media in resp['data']['medias']:
             for limiter in limiters:
-                if media['fav_time'] >= limiter.after and media['duration'] <= limiter.max_duration:
+                if media['fav_time'] >= limiter.after and \
+                        (limiter.max_duration == 0 or media['duration'] <= limiter.max_duration):
+                    # 允许不限制投稿时长
                     medias.append(media)
                     break
         time.sleep(1)
