@@ -26,11 +26,11 @@ prevent the online videos from being deleted.
 ```
 python main.py aim
     status
-    add <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-t <最早发布时间>] [-l <投稿时长>]
+    add <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-a <最早发布时间 格式2022-09-10>] [-d <投稿时长秒数>]
     rm <备份目标收藏夹序号> [备份目标条件序号1,...,备份目标条件序号N]
     addm <投稿BV ID1>[,<投稿BV ID2>,...,<投稿BV IDN>]
     rmm <投稿BV ID1>[,<投稿BV ID2>,...,<投稿BV IDN>]
-    addu <UP主 ID1>[,<UP主 ID2>,...,<UP主 IDN>] [-t <最早发布时间>] [-l <投稿时长>]
+    addu <UP主 ID1>[,<UP主 ID2>,...,<UP主 IDN>] [-a <最早发布时间 格式2022-09-10>] [-d <投稿时长秒数>]
     rmu <备份目标UP主序号> [备份目标UP主条件序号1,...,备份目标UP主条件序号N]
 ```
 
