@@ -2,7 +2,7 @@
 
 ## 介绍
 
-将 [哔哩哔哩（Bilibili，又称B站）](https://www.bilibili.com/) 收藏夹中收藏的视频， 下载备份到本地磁盘，避免线上视频被删除。
+将 [哔哩哔哩（Bilibili，又称B站）](https://www.bilibili.com/) 指定收藏夹中、UP主的或单独的投稿中的视频， 下载备份到本地磁盘，避免线上视频被删除。
 
 Get videos in user created favorite folders on [bilibili](https://www.bilibili.com/), and save them to the local disk to
 prevent the online videos from being deleted.
@@ -26,13 +26,15 @@ prevent the online videos from being deleted.
 ```
 python main.py aim
     status
-    add <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-a <最早发布时间 格式2022-09-10>] [-d <投稿时长秒数>]
-    rm <备份目标收藏夹序号> [备份目标条件序号1,...,备份目标条件序号N]
-    addm <投稿BV ID1>[,<投稿BV ID2>,...,<投稿BV IDN>]
-    rmm <投稿BV ID1>[,<投稿BV ID2>,...,<投稿BV IDN>]
-    addu <UP主 ID1>[,<UP主 ID2>,...,<UP主 IDN>] [-a <最早发布时间 格式2022-09-10>] [-d <投稿时长秒数>]
-    rmu <备份目标UP主序号> [备份目标UP主条件序号1,...,备份目标UP主条件序号N]
+    add <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-a <最早发布时间>] [-d <投稿时长秒数>]
+    rm <备份目标收藏夹序号> <备份目标条件序号1>[,...,<备份目标条件序号N>]
+    addm <投稿BV ID1>[,...,<投稿BV IDN>]
+    rmm <投稿BV ID1>[,...,<投稿BV IDN>]
+    addu <UP主 ID1>[,...,<UP主 IDN>] [-a <最早发布时间>] [-d <投稿时长秒数>]
+    rmu <备份目标UP主序号> <备份目标UP主条件序号1>[,...,<备份目标UP主条件序号N>]
 ```
+
+最早发布时间 格式2022-09-10
 
 ### 同步备份目标对应的文件
 
@@ -77,16 +79,19 @@ python main.py clear [保留旧日志个数]
 
 #### 增加备份目标
 
-向备份目标加入收藏夹和筛选条件（发布时间戳和时长）。
-同一收藏夹满足多个条件中任一，就是备份目标。
+将投稿，或附带筛选条件的收藏夹或UP主作为备份目标。
+
+筛选条件包括发布时间戳和时长。
+
+同一收藏夹或UP主多个条件中满足任一，就选中作为备份目标。
 
 #### 删除备份目标
 
-从备份目标中删除指定编号的收藏夹，或收藏夹的筛选条件。
+从备份目标中删除指定投稿，或删除指定编号收藏夹或UP主的指定编号的筛选条件。
 
 #### 显示所有备份目标
 
-显示所有备份目标收藏夹，和每个收藏夹的所有筛选条件。
+显示所有备份目标收藏夹、UP主和投稿，和每个收藏夹和UP主的所有筛选条件。
 
 ### 更新
 
