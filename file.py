@@ -94,6 +94,29 @@ class Aim:
         return f'收藏夹标题:{self.title} 投稿数:{self.media_count} 收藏夹id:{self.fid}\n{limiters}'
 
 
+class AimUpper:
+    def __init__(self, mid: int, limiters: list[Limiter]):
+        self.typ = 'upper'
+        self.mid = mid
+        self.limiters = limiters
+        url = api.generate_user_detail_url(mid)
+        resp = request.request_retry_json(url, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.55',
+        })
+        # UP主名字
+        print(resp.keys())
+        self.name = resp['data']['name']
+        url2 = api.generate_upper_content_url(mid, 1)
+        resp2 = request.request_retry_json(url2)
+        self.media_count = resp2['data']['page']['count']
+
+    def __str__(self):
+        limiters = ''
+        for i in range(len(self.limiters)):
+            limiters += f'\t({i + 1}) {self.limiters[i]}\n'
+        return f'UP主ID:{self.mid} 网名:{self.name}\n{limiters}'
+
+
 class AimMedia:
     def __init__(self, bv_id: str):
         self.typ = 'media'
@@ -118,11 +141,12 @@ class AimMedia:
         return f'投稿标题:{self.title} 投稿分P数:{self.media_count} 投稿bv id:{self.bv_id}'
 
 
-def read_aim_json() -> [list[Aim], list[AimMedia]]:
+def read_aim_json() -> [list[Aim], list[AimMedia], list[AimUpper]]:
     with open(aim_json, encoding='utf-8') as f:
         aims: list[dict] = json.load(f)
         aim_favorites: list[Aim] = list[Aim]()
         aim_medias: list[AimMedia] = list[AimMedia]()
+        aim_upper: list[AimUpper] = list[AimUpper]()
         for aim in aims:
             if 'typ' not in aim.keys():
                 # 缺省为目标收藏夹
@@ -130,12 +154,15 @@ def read_aim_json() -> [list[Aim], list[AimMedia]]:
                 aim_favorites.append(Aim(aim['fid'], limiters))
             elif aim['typ'] == 'media':  # 目标投稿
                 aim_medias.append(AimMedia(aim['bv_id']))
-        return aim_favorites, aim_medias
+            elif aim['typ'] == 'upper':  # 目标up主
+                limiters = [Limiter(limiter['after'], limiter['max_duration']) for limiter in aim['limiters']]
+                aim_upper.append(AimUpper(aim['mid'], limiters))
+        return aim_favorites, aim_medias, aim_upper
 
 
-def write_aim_json(aim_favorites: list[Aim], aim_medias: list[AimMedia]):
+def write_aim_json(aim_favorites: list[Aim], aim_medias: list[AimMedia], aim_uppers: list[AimUpper]):
     with open(aim_json, 'w', encoding='utf-8') as f:
-        json.dump(aim_favorites + aim_medias, f, cls=MyEncoder, ensure_ascii=False)
+        json.dump(aim_favorites + aim_medias + aim_uppers, f, cls=MyEncoder, ensure_ascii=False)
 
 
 def read_local_json() -> set[str]:

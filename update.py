@@ -45,6 +45,44 @@ def get_folder_all_medias(fid: int, media_count: int, limiters: list[file.Limite
     return medias
 
 
+def get_aim_upper_all_medias(mid: int, media_count: int, limiters: list[file.Limiter]) -> list:
+    """
+    获取UP主的所有投稿信息
+    :param mid: up主id
+    :param media_count: 投稿数量
+    :param limiters: 筛选条件
+    :return: 线上符合要求投稿信息
+    """
+
+    page_count = math.ceil(media_count / 50)
+    medias = []
+    for page_id in range(page_count):
+        # B站系统限制，每次获取一页
+        url = api.generate_upper_content_url(mid, page_id + 1)
+        resp = request.request_retry_json(url)
+        if resp['code'] != 0:
+            logging.error(f'获取UP主投稿失败: {mid}')
+            continue
+        for media in resp['data']['list']['vlist']:
+            for limiter in limiters:
+                # 解析时长
+                length: int = 0
+                for s in str(media['length']).split(':'):  # 格式为([0-9]+\:)?[0-9]{2}\:[0-9]{2}
+                    length += int(s)
+                    length *= 60
+                if media['created'] >= limiter.after and \
+                        (limiter.max_duration == 0 or length <= limiter.max_duration):
+                    # 允许不限制投稿时长
+                    media['bv_id'] = media['bvid']
+                    media['cover'] = media['pic']
+                    media['duration'] = length
+                    medias.append(media)
+                    break
+        time.sleep(1)
+
+    return medias
+
+
 def get_media_all_pages(bv_id: str) -> list[dict]:
     url = api.generate_media_pages_url(bv_id)
     resp = request.request_retry_json(url)
@@ -63,7 +101,7 @@ def main():
     :return: None
     """
 
-    aim_favorites, aim_medias = file.read_aim_json()
+    aim_favorites, aim_medias, aim_uppers = file.read_aim_json()
 
     # 本地所有备份的bv号
     local_bv_id_set = file.read_local_json()
@@ -88,6 +126,15 @@ def main():
                 online_bv_id_set.add(bv_id)
             else:
                 online_deleted_bv_id_set.add(bv_id)
+
+    for aim in aim_uppers:
+        print(aim)
+        medias = get_aim_upper_all_medias(aim.mid, aim.media_count, aim.limiters)
+        print(medias)
+        for media in medias:
+            bv_id = media['bv_id']
+            all_medias[bv_id] = media
+            online_bv_id_set.add(bv_id)
 
     for aim in aim_medias:
         bv_id = aim.bv_id

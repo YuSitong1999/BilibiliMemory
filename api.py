@@ -28,6 +28,29 @@ def generate_fav_content_url(fid: int, page_number: int) -> str:
     return f'https://api.bilibili.com/x/v3/fav/resource/list?ps=20&media_id={fid}&pn={page_number}'
 
 
+def generate_user_detail_url(mid: int) -> str:
+    """
+    获取用户信息
+    https://api.bilibili.com/x/space/acc/info?
+        mid={用户ID}
+    :param mid: UP主id
+    :return:
+    """
+    return f"https://api.bilibili.com/x/space/acc/info?mid={mid}"
+
+
+def generate_upper_content_url(mid: int, page_number: int) -> str:
+    """
+    获取UP主投稿一页内容
+    https://api.bilibili.com/x/space/arc/search?ps=50&
+        mid={UP主ID}&pn={页码，从1开始}
+    :param mid: UP主id
+    :param page_number: 收藏夹中页码
+    :return: 获取收藏夹一页内容url
+    """
+    return f'https://api.bilibili.com/x/space/arc/search?ps=50&mid={mid}&pn={page_number}'
+
+
 def generate_media_detail_url(bv_id: str) -> str:
     """
     获取投稿信息

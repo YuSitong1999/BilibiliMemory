@@ -151,6 +151,213 @@ https://api.bilibili.com/x/v3/fav/resource/list?ps=20& media_id={收藏夹ID}&pn
 }
 ```
 
+### 获取用户个人信息
+
+https://api.bilibili.com/x/space/acc/info?mid=1210635994&token=&platform=web&jsonp=jsonp
+
+https://api.bilibili.com/x/space/acc/info?
+mid={用户ID}
+
+```json
+{
+  "code": 0,
+  "message": "0",
+  "ttl": 1,
+  "data": {
+    "mid": 1210635994,
+    "name": "吴尽意",
+    "sex": "女",
+    "face": "http://i1.hdslb.com/bfs/face/4d3a38a9ca8c9822f34131c846a1beacf4516194.jpg",
+    "face_nft": 0,
+    "face_nft_type": 0,
+    "sign": "「谁字仁者为无尽意？」",
+    "rank": 10000,
+    "level": 6,
+    "jointime": 0,
+    "moral": 0,
+    "silence": 0,
+    "coins": 0,
+    "fans_badge": true,
+    "fans_medal": {
+      "show": false,
+      "wear": false,
+      "medal": null
+    },
+    "official": {
+      "role": 1,
+      "title": "bilibili 知名舞蹈UP主",
+      "desc": "",
+      "type": 0
+    },
+    "vip": {
+      "type": 2,
+      "status": 1,
+      "due_date": 1669219200000,
+      "vip_pay_type": 0,
+      "theme_type": 0,
+      "label": {
+        "path": "",
+        "text": "年度大会员",
+        "label_theme": "annual_vip",
+        "text_color": "#FFFFFF",
+        "bg_style": 1,
+        "bg_color": "#FB7299",
+        "border_color": "",
+        "use_img_label": true,
+        "img_label_uri_hans": "",
+        "img_label_uri_hant": "",
+        "img_label_uri_hans_static": "https://i0.hdslb.com/bfs/vip/8d4f8bfc713826a5412a0a27eaaac4d6b9ede1d9.png",
+        "img_label_uri_hant_static": "https://i0.hdslb.com/bfs/activity-plat/static/20220614/e369244d0b14644f5e1a06431e22a4d5/VEW8fCC0hg.png"
+      },
+      "avatar_subscript": 1,
+      "nickname_color": "#FB7299",
+      "role": 3,
+      "avatar_subscript_url": "",
+      "tv_vip_status": 0,
+      "tv_vip_pay_type": 0
+    },
+    "pendant": {
+      "pid": 0,
+      "name": "",
+      "image": "",
+      "expire": 0,
+      "image_enhance": "",
+      "image_enhance_frame": ""
+    },
+    "nameplate": {
+      "nid": 39,
+      "name": "直播车神",
+      "image": "http://i0.hdslb.com/bfs/face/a1bf58db4a48f4ec394627d96af7399456812bbb.png",
+      "image_small": "http://i1.hdslb.com/bfs/face/9d1ab43e5064834e0081c46990c7f4d1228ac69c.png",
+      "level": "稀有勋章",
+      "condition": "直播主播等级\u003e=30级"
+    },
+    "user_honour_info": {
+      "mid": 0,
+      "colour": null,
+      "tags": []
+    },
+    "is_followed": true,
+    "top_photo": "http://i2.hdslb.com/bfs/space/cb1c3ef50e22b6096fde67febe863494caefebad.png",
+    "theme": {},
+    "sys_notice": {},
+    "live_room": {
+      "roomStatus": 1,
+      "liveStatus": 1,
+      "url": "https://live.bilibili.com/23358451?broadcast_type=1\u0026is_room_feed=1",
+      "title": "176的小姐姐",
+      "cover": "http://i0.hdslb.com/bfs/live/new_room_cover/5541d61d89d50b0070217a26e1cebbaedced18b8.jpg",
+      "roomid": 23358451,
+      "roundStatus": 0,
+      "broadcast_type": 1,
+      "watched_show": {
+        "switch": true,
+        "num": 103692,
+        "text_small": "10.3万",
+        "text_large": "10.3万人看过",
+        "icon": "https://i0.hdslb.com/bfs/live/a725a9e61242ef44d764ac911691a7ce07f36c1d.png",
+        "icon_location": "",
+        "icon_web": "https://i0.hdslb.com/bfs/live/8d9d0f33ef8bf6f308742752d13dd0df731df19c.png"
+      }
+    },
+    "birthday": "09-28",
+    "school": null,
+    "profession": {
+      "name": "",
+      "department": "",
+      "title": "",
+      "is_show": 0
+    },
+    "tags": null,
+    "series": {
+      "user_upgrade_status": 3,
+      "show_upgrade_window": false
+    },
+    "is_senior_member": 0,
+    "mcn_info": null,
+    "gaia_res_type": 0,
+    "gaia_data": null,
+    "is_risk": false,
+    "elec": {
+      "show_info": {
+        "show": false,
+        "state": -1,
+        "title": "",
+        "icon": "",
+        "jump_url": ""
+      }
+    }
+  }
+}
+```
+
+### 获取UP主一页投稿内容
+
+https://api.bilibili.com/x/space/arc/search?mid=346563107&ps=30&tid=0&pn=1&keyword=&order=pubdate&jsonp=jsonp
+
+https://api.bilibili.com/x/space/arc/search?mid=346563107&ps=50&pn=1
+
+https://api.bilibili.com/x/space/arc/search?ps={每页个数，最多50}&
+mid={UP主ID}&pn={页码，从1开始}
+
+返回值（有删减）
+
+```json
+{
+  "code": 0,
+  "message": "0",
+  "ttl": 1,
+  "data": {
+    "list": {
+      "tlist": {
+        "129": {
+          "tid": 129,
+          "count": 1,
+          "name": "舞蹈"
+        }
+      },
+      "vlist": [
+        {
+          "comment": 87,
+          "typeid": 199,
+          "play": 123337,
+          "pic": "http://i1.hdslb.com/bfs/archive/cf23f2da3837e6fbd27e16f070bdedccb1da3862.jpg",
+          "subtitle": "",
+          "description": "音乐：bingbing-AOA\n摄影：晨枫羽\n后期：玻璃猪",
+          "copyright": "1",
+          "title": "意乱情迷~ ◈bingbing◈ AOA",
+          "review": 0,
+          "author": "吴尽意",
+          "mid": 1210635994,
+          "created": 1662521700,
+          "length": "01:51",
+          "video_review": 26,
+          "aid": 772804482,
+          "bvid": "BV1T14y1e74D",
+          "hide_click": false,
+          "is_pay": 0,
+          "is_union_video": 0,
+          "is_steins_gate": 0,
+          "is_live_playback": 0
+        }
+      ]
+    },
+    "page": {
+      "pn": 1,
+      "ps": 50,
+      "count": 1
+    },
+    "episodic_button": {
+      "text": "播放全部",
+      "uri": "//www.bilibili.com/medialist/play/1210635994?from=space"
+    },
+    "is_risk": false,
+    "gaia_res_type": 0,
+    "gaia_data": null
+  }
+}
+```
+
 ### 单一投稿信息
 
 https://api.bilibili.com/x/web-interface/view/detail? bvid= {视频bvid}
