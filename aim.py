@@ -141,9 +141,13 @@ def aim_rm_favorites(argv: list[str], aim_favorites: list[file.Aim]) -> list[fil
             continue
         aim_limiters_number_set.add(number)
 
-    aim_favorites[aim_fav_number].limiters = [aim_favorites[aim_fav_number].limiters[i]
-                                              for i in range(len(aim_favorites[aim_fav_number].limiters))
-                                              if i not in aim_limiters_number_set]
+    limiters = [aim_favorites[aim_fav_number].limiters[i]
+                for i in range(len(aim_favorites[aim_fav_number].limiters))
+                if i not in aim_limiters_number_set]
+    if len(limiters) == 0:
+        aim_favorites = aim_favorites[:aim_fav_number] + aim_favorites[aim_fav_number + 1:]
+    else:
+        aim_favorites[aim_fav_number].limiters = limiters
     return aim_favorites
 
 
@@ -167,9 +171,13 @@ def aim_rm_uppers(argv: list[str], aim_uppers: list[file.AimUpper]) -> list[file
             continue
         aim_limiters_number_set.add(number)
 
-    aim_uppers[aim_upper_number].limiters = [aim_uppers[aim_upper_number].limiters[i]
-                                             for i in range(len(aim_uppers[aim_upper_number].limiters))
-                                             if i not in aim_limiters_number_set]
+    limiters = [aim_uppers[aim_upper_number].limiters[i]
+                for i in range(len(aim_uppers[aim_upper_number].limiters))
+                if i not in aim_limiters_number_set]
+    if len(limiters) == 0:
+        aim_uppers = aim_uppers[:aim_upper_number] + aim_uppers[aim_upper_number + 1:]
+    else:
+        aim_uppers[aim_upper_number].limiters = limiters
     return aim_uppers
 
 
