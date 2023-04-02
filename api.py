@@ -73,7 +73,7 @@ def generate_media_pages_url(bv_id: str) -> str:
     return f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}'
 
 
-def generate_media_audio_video_url(bv_id: str, cid: int) -> [str, str]:
+def generate_media_audio_video_url(bv_id: str, cid: int) -> [list[str], list[str]]:
     """
     获取投稿的音频、视频URL
     https://api.bilibili.com/x/player/playurl?qn=120&type=&otype=json&fourk=1&fnver=0&fnval=976&
@@ -86,7 +86,7 @@ def generate_media_audio_video_url(bv_id: str, cid: int) -> [str, str]:
     url = f'https://api.bilibili.com/x/player/playurl?fnval=976&bvid={bv_id}&cid={cid}'
     resp = request.request_retry_json(url)
     media_info = resp['data']['dash']
-    audio_url = media_info['audio'][0]['base_url']
-    video_url = media_info['video'][0]['base_url']
+    audio_url_list: list[str] = [media_info['audio'][0]['base_url'], ] + media_info['audio'][0]['backup_url']
+    video_url_list: list[str] = [media_info['video'][0]['base_url'], ] + media_info['video'][0]['backup_url']
     logging.info(f'get media url {bv_id} {cid} finished.')
-    return audio_url, video_url
+    return [audio_url_list, video_url_list]

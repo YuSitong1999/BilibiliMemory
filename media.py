@@ -6,14 +6,22 @@ import request
 import api
 
 
+def download_file_url_list(bv_id: str, url_list: list[str], file_path: str):
+    fake_referer_url = 'https://www.bilibili.com/video/' + bv_id
+    resp = request.request_retry_url_list(url_list, headers={
+        'referer': fake_referer_url,
+        'range': 'bytes=0-'})
+    with open(file_path, 'wb') as f:
+        f.write(resp.content)
+
+
 def download_file(bv_id: str, url: str, file_path: str):
     fake_referer_url = 'https://www.bilibili.com/video/' + bv_id
     resp = request.request_retry(url, headers={
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.55',
         'referer': fake_referer_url,
         'range': 'bytes=0-'})
-    with open(file_path, 'wb') as file:
-        file.write(resp.content)
+    with open(file_path, 'wb') as f:
+        f.write(resp.content)
 
 
 def merge_media(audio_file_path: str, video_file_path: str, file_path: str):
@@ -27,16 +35,16 @@ def merge_media(audio_file_path: str, video_file_path: str, file_path: str):
 
 
 def download_media(bv_id: str, first_cid: int, media_path: str, page_id: str):
-    audio_url, video_url = api.generate_media_audio_video_url(bv_id, first_cid)
+    audio_url_list, video_url_list = api.generate_media_audio_video_url(bv_id, first_cid)
     # 下载音频
     audio_file_path = os.path.join(file.tmp_path, 'tmp_audio.m4s')
     logging.info('download audio ' + bv_id + ' ' + str(first_cid) + ':')
-    download_file(bv_id, audio_url, audio_file_path)
+    download_file_url_list(bv_id, audio_url_list, audio_file_path)
     logging.info('download audio ' + bv_id + ' ' + str(first_cid) + ' finished.')
     # 下载视频
     video_file_path = os.path.join(file.tmp_path, 'tmp_video.m4s')
     logging.info('download video ' + bv_id + ' ' + str(first_cid) + ':')
-    download_file(bv_id, video_url, video_file_path)
+    download_file_url_list(bv_id, video_url_list, video_file_path)
     logging.info('download video ' + bv_id + ' ' + str(first_cid) + ' finished.')
     # 合并音视频后删除临时文件
     if page_id != '':

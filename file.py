@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import time
@@ -100,14 +101,13 @@ class AimUpper:
         self.mid = mid
         self.limiters = limiters
         url = api.generate_user_detail_url(mid)
-        resp = request.request_retry_json(url, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.55',
-        })
+        resp = request.request_retry_json(url)
         # UP主名字
-        print(resp.keys())
+        logging.debug(f'resp {resp}')
         self.name = resp['data']['name']
         url2 = api.generate_upper_content_url(mid, 1)
         resp2 = request.request_retry_json(url2)
+        logging.debug(f'resp2 {resp2}')
         self.media_count = resp2['data']['page']['count']
 
     def __str__(self):
