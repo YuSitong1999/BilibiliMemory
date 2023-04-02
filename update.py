@@ -2,6 +2,8 @@ import logging
 import math
 import os
 import time
+import datetime
+import pytz
 
 import api
 import file
@@ -95,6 +97,48 @@ def get_media_all_pages(bv_id: str) -> list[dict]:
     return [page for page in resp['data']]
 
 
+def timestamp_to_time(timestamp: int | str) -> str:
+    if timestamp == '':
+        return ''
+    timestamp = int(timestamp)
+    return datetime.datetime.fromtimestamp(timestamp, pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
+
+
+def generate_html(local_bv_id_set: set[str]):
+    # 读取所有本地投稿信息
+    media_list: list[dict] = []
+    for bv_id in local_bv_id_set:
+        # 读投稿数据
+        media = file.read_media_json(bv_id)
+        media_list.append(media)
+
+    # 按收藏时间（如果有）或发布时间排序
+    media_list.sort(key=lambda m: str(m.get('fav_time', m.get('created', ''))), reverse=True)
+    # 生成网页
+    html_content: str = ''
+    for media in media_list:
+        # FIXME 投稿信息格式不统一
+        author = media.get('author', '')
+        if author == '':
+            author = media.get('upper', None)
+            if author is not None:
+                author = author['name']
+        html_content += f'''
+    <tr>
+        <td><img src="../all/{media['bv_id']}.jpg" alt="封面图片" style="height: 100px"/></td>
+        <td>{media['title']}</td>
+        <td>{author}</td>
+        <td>{timestamp_to_time(media.get('pubtime', media.get('created', '')))}</td>
+        <td>{timestamp_to_time(media.get('fav_time', ''))}</td>
+        <td>{media['duration'] // 3600}:{media['duration'] // 60 % 60}:{media['duration'] % 60}</td>
+        <td><a href="../all/{media['bv_id']}.mp4" target="_blank">本地视频</a></td>
+        <td>{media.get('intro', '')}</td>
+    </tr>'''
+
+    # 写网页文件
+    file.write_html(html_content)
+
+
 def main():
     """
     执行更新备份
@@ -116,6 +160,9 @@ def main():
     # 线上已被删除投稿bv id
     online_deleted_bv_id_set = set[str]()
     all_medias = dict[str, dict]()
+
+    # 生成网页
+    generate_html(local_bv_id_set)
 
     for aim in aim_favorites:
         medias = get_folder_all_medias(aim.fid, aim.media_count, aim.limiters)
@@ -226,3 +273,6 @@ def main():
         # 更新本地已备份投稿信息
         local_bv_id_set.add(bv_id)
         file.write_local_json(list[str](local_bv_id_set))
+
+    # 生成网页
+    generate_html(local_bv_id_set)

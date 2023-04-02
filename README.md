@@ -4,6 +4,8 @@
 
 将 [哔哩哔哩（Bilibili，又称B站）](https://www.bilibili.com/) 指定收藏夹中、UP主的或单独的投稿中的视频， 下载备份到本地磁盘，避免线上视频被删除。
 
+支持通过每次更新后生成的网页，查看本地投稿信息。
+
 Get videos in user created favorite folders on [bilibili](https://www.bilibili.com/), and save them to the local disk to
 prevent the online videos from being deleted.
 
@@ -38,7 +40,7 @@ python main.py aim
 
 ### 同步备份目标对应的文件
 
-查看需要执行的操作，确认后执行
+查看需要执行的操作，确认后执行，执行后更新所有投稿信息网页。
 
 ```
 python main.py update
@@ -64,6 +66,7 @@ python main.py clear [保留旧日志个数]
         * [bv_id]_[validatedTitle].name 投稿标题标记
         * [bv_id] \( \_[pageID] \) \_[validatedPageTitle].name 投稿分P标题标记
     * meta \ 元数据目录
+        * index.html 每次更新后生成的网页，包含所有本地投稿信息
         * aim.json 备份目标收藏夹和筛选条件
         * local.json 本地现有投稿的bv_id
         * deleted.json 本地保存线上已删除的bv_id
@@ -105,6 +108,7 @@ python main.py clear [保留旧日志个数]
     * 新删除（本地存在，线上有残留记录）：更新本地备份状态
     * 新丢失（本地不存在，线上有残留记录）：下载残留记录
 * 询问是否执行更新
+* 执行更新后，更新 meta\index.html 本地投稿。
 
 ## TODO
 
@@ -116,7 +120,7 @@ python main.py clear [保留旧日志个数]
 - [x] 自动删除旧日志，只保留最近10个日志文件
 - [x] 支持强制备份指定BV的投稿
 - [x] 支持设置备份目标UP主
-- [ ] 对于有阅读价值的数据，保存为JSON的同时，另行保存为CSV
+- [x] 对于有阅读价值的数据，保存为JSON的同时，保存为HTML网页（MS Excel默认将CSV按GBK打开，保存UTF-8会乱码）
 - [ ] 支持配置目录
 - [ ] 另行按收藏夹保存全部投稿
 - [ ] 支持使用cookie下载私密收藏夹

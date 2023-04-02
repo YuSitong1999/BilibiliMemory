@@ -232,3 +232,13 @@ def create_name_file(bv_id: str, page: int, title: str, parts: list[str]):
     if page != 1:
         for i in range(page):
             os.mknod(name_file_base + '_' + str(i + 1) + '_' + validate_file_name(parts[i]))
+
+
+def write_html(html_content: str):
+    # 读模板
+    template: str
+    with open('template.html', encoding='utf-8') as f:
+        template = f.read()
+    # 写网页
+    with open(os.path.join(meta_path, 'index.html'), 'w', encoding='utf-8') as f:
+        f.write(template.replace('<!-- 此处填充投稿内容 -->', html_content))
