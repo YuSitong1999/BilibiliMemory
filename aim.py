@@ -176,7 +176,7 @@ def main(argv: list[str]):
     operation_rm_limiter = 'rml'
 
     operations = (operation_status, operation_add_favorites,
-                  operation_add_media, operation_add_upper, operation_rm)
+                  operation_add_media, operation_add_upper, operation_rm, operation_rm_limiter)
     if len(argv) == 0 or argv[0] not in operations:
         logging.error(f'命令"{argv}"不受支持，请输入支持的命令:\n{command_aim}')
         return

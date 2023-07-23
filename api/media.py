@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import api
 import config
@@ -84,12 +85,26 @@ def request_media_audio_video(bv_id: str, cid: int) -> tuple[list[str], list[str
     :return: 音频、视频URL
     """
     logging.info(f'get media url {bv_id} {cid} :')
-    resp = request_retry_json(f'https://api.bilibili.com/x/player/playurl?fnval=976&bvid={bv_id}&cid={cid}')
-    media_info = resp['data']['dash']
-    audio_url_list: list[str] = [media_info['audio'][0]['base_url'], ] + media_info['audio'][0]['backup_url']
-    video_url_list: list[str] = [media_info['video'][0]['base_url'], ] + media_info['video'][0]['backup_url']
-    logging.info(f'get media url {bv_id} {cid} finished.')
-    return audio_url_list, video_url_list
+    for _ in range(5):
+        resp = request_retry_json(f'https://api.bilibili.com/x/player/playurl?fnval=976&bvid={bv_id}&cid={cid}')
+        if resp['code'] == -404:
+            logging.warning(f'get media url {bv_id} {cid} 404, return. {resp}')
+            time.sleep(3)
+            continue
+        if resp['code'] != 0:
+            logging.warning(f'get media url {bv_id} {cid} failed, retry. {resp}')
+            time.sleep(3)
+            continue
+        media_info = resp['data']['dash']
+        audio_url_list: list[str] = [media_info['audio'][0]['base_url'], ] + \
+            ([] if media_info['audio'][0]['backup_url'] is None
+                else media_info['audio'][0]['backup_url'])
+        video_url_list: list[str] = [media_info['video'][0]['base_url'], ] + \
+            ([] if media_info['video'][0]['backup_url'] is None
+                else media_info['video'][0]['backup_url'])
+        logging.info(f'get media url {bv_id} {cid} finished.')
+        return audio_url_list, video_url_list
+    raise Exception(f'get media url {bv_id} {cid} failed.')
 
 
 def download_file_url_list(bv_id: str, url_list: list[str], file_path: str):

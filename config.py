@@ -47,6 +47,7 @@ def load_config():
 
 
 def configure_logger():
+    global log_file_path
     # Debug级别输出到文件
     log_file = os.path.join(log_file_path, time.strftime('%Y-%m-%d_%H_%M_%S.log'))
     logging.basicConfig(level=logging.DEBUG,
