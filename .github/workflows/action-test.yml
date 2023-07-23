@@ -39,3 +39,4 @@ jobs:
         pytest
       env:
         BILIBILI_COOKIE: ${{ secrets.BILIBILI_COOKIE }}
+        GITHUB_ACTION_FLAG: "1"

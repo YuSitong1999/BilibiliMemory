@@ -17,6 +17,7 @@ sqlite3_file: str
 all_media_path: str
 cookie: str
 
+is_github_action: bool = os.getenv('GITHUB_ACTION_FLAG') != ''
 
 def load_config():
     """加载配置
