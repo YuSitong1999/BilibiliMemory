@@ -1,3 +1,4 @@
+'''
 import logging
 import os
 import time
@@ -61,3 +62,4 @@ def clear(argv: list[str]):
         delete_old_log_file()
     else:
         delete_old_log_file(int(argv[0]))
+'''

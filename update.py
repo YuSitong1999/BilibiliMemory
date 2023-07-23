@@ -1,142 +1,64 @@
 import logging
 import math
-import os
 import time
-import datetime
-import pytz
 
 import api
-import file
-import request
-from media import download_file, download_media
+import bvid_aid
+import config
+import dao
+from aim import AIM_FAVORITE_TYPE_ID, AIM_MEDIA_TYPE_ID, AIM_UPPER_TYPE_ID
 
 
-def check_online_available(bv_id: str) -> bool:
-    url = api.generate_media_pages_url(bv_id)
-    resp = request.request_retry_json(url)
-    return resp['code'] == 0
+def generate_update_timestamp() -> int:
+    return math.floor(time.time())
 
 
-def get_folder_all_medias(fid: int, media_count: int, limiters: list[file.Limiter]) -> list:
-    """
-    获取线上符合要求的所有投稿信息
-    :param fid: 收藏夹id
-    :param media_count: 投稿数量
-    :param limiters: 筛选条件
-    :return: 线上符合要求投稿信息
-    """
-
-    page_count = math.ceil(media_count / 20)
-    medias = []
-    for page_id in range(page_count):
-        # B站系统限制，每次获取一页
-        url = api.generate_fav_content_url(fid, page_id)
-        resp = request.request_retry_json(url)
-        if resp['code'] != 0:
-            logging.error('get favorite folder error: ' + str(fid))
-            continue
-        for media in resp['data']['medias']:
-            for limiter in limiters:
-                if media['fav_time'] >= limiter.after and \
-                        (limiter.max_duration == 0 or media['duration'] <= limiter.max_duration):
-                    # 允许不限制投稿时长
-                    medias.append(media)
-                    break
-        time.sleep(1)
-
-    return medias
-
-
-def get_aim_upper_all_medias(mid: int, media_count: int, limiters: list[file.Limiter]) -> list:
-    """
-    获取UP主的所有投稿信息
-    :param mid: up主id
-    :param media_count: 投稿数量
-    :param limiters: 筛选条件
-    :return: 线上符合要求投稿信息
-    """
-
-    page_count = math.ceil(media_count / 50)
-    medias = []
-    for page_id in range(page_count):
-        # B站系统限制，每次获取一页
-        url = api.generate_upper_content_url(mid, page_id + 1)
-        resp = request.request_retry_json(url)
-        if resp['code'] != 0:
-            logging.error(f'获取UP主投稿失败: {mid}')
-            continue
-        for media in resp['data']['list']['vlist']:
-            for limiter in limiters:
-                # 解析时长
-                length: int = 0
-                for s in str(media['length']).split(':'):  # 格式为([0-9]+\:)?[0-9]{2}\:[0-9]{2}
-                    length += int(s)
-                    length *= 60
-                if media['created'] >= limiter.after and \
-                        (limiter.max_duration == 0 or length <= limiter.max_duration):
-                    # 允许不限制投稿时长
-                    media['bv_id'] = media['bvid']
-                    media['cover'] = media['pic']
-                    media['duration'] = length
-                    medias.append(media)
-                    break
-        time.sleep(1)
-
-    return medias
+# def generate_html(local_bv_id_set: set[str]):
+#     # 读取所有本地投稿信息
+#     media_list: list[dict] = []
+#     for bv_id in local_bv_id_set:
+#         # 读投稿数据
+#         media = file.read_media_json(bv_id)
+#         media_list.append(media)
+#
+#     # 按收藏时间（如果有）或发布时间排序
+#     media_list.sort(key=lambda m: str(m.get('fav_time', m.get('created', ''))), reverse=True)
+#     # 生成网页
+#     html_content: str = ''
+#     for media in media_list:
+#         # FIXME 投稿信息格式不统一
+#         author = media.get('author', '')
+#         if author == '':
+#             author = media.get('upper', None)
+#             if author is not None:
+#                 author = author['name']
+#         html_content += f'''
+#     <tr>
+#         <td><img src="../all/{media['bv_id']}.jpg" alt="封面图片" style="height: 100px"/></td>
+#         <td>{media['title']}</td>
+#         <td>{author}</td>
+#         <td>{timestamp_to_time(media.get('pubtime', media.get('created', '')))}</td>
+#         <td>{timestamp_to_time(media.get('fav_time', ''))}</td>
+#         <td>{media['duration'] // 3600}:{media['duration'] // 60 % 60}:{media['duration'] % 60}</td>
+#         <td><a href="../all/{media['bv_id']}.mp4" target="_blank">本地视频</a></td>
+#         <td>{media.get('intro', '')}</td>
+#     </tr>'''
+#
+#     # 写网页文件
+#     file.write_html(html_content)
 
 
-def get_media_all_pages(bv_id: str) -> list[dict]:
-    url = api.generate_media_pages_url(bv_id)
-    resp = request.request_retry_json(url)
-    if resp['code'] == -404:
-        logging.error('media all pages not find' + bv_id)
-        return []
-    elif resp['code'] != 0:
-        logging.error('get media pages error: ' + bv_id)
-        return []
-    return [page for page in resp['data']]
-
-
-def timestamp_to_time(timestamp: int | str) -> str:
-    if timestamp == '':
-        return ''
-    timestamp = int(timestamp)
-    return datetime.datetime.fromtimestamp(timestamp, pytz.timezone('Asia/Shanghai')).strftime('%Y-%m-%d %H:%M:%S')
-
-
-def generate_html(local_bv_id_set: set[str]):
-    # 读取所有本地投稿信息
-    media_list: list[dict] = []
-    for bv_id in local_bv_id_set:
-        # 读投稿数据
-        media = file.read_media_json(bv_id)
-        media_list.append(media)
-
-    # 按收藏时间（如果有）或发布时间排序
-    media_list.sort(key=lambda m: str(m.get('fav_time', m.get('created', ''))), reverse=True)
-    # 生成网页
-    html_content: str = ''
-    for media in media_list:
-        # FIXME 投稿信息格式不统一
-        author = media.get('author', '')
-        if author == '':
-            author = media.get('upper', None)
-            if author is not None:
-                author = author['name']
-        html_content += f'''
-    <tr>
-        <td><img src="../all/{media['bv_id']}.jpg" alt="封面图片" style="height: 100px"/></td>
-        <td>{media['title']}</td>
-        <td>{author}</td>
-        <td>{timestamp_to_time(media.get('pubtime', media.get('created', '')))}</td>
-        <td>{timestamp_to_time(media.get('fav_time', ''))}</td>
-        <td>{media['duration'] // 3600}:{media['duration'] // 60 % 60}:{media['duration'] % 60}</td>
-        <td><a href="../all/{media['bv_id']}.mp4" target="_blank">本地视频</a></td>
-        <td>{media.get('intro', '')}</td>
-    </tr>'''
-
-    # 写网页文件
-    file.write_html(html_content)
+def download_media(bv_id: str, cid: int, page_count: int) -> bool:
+    api.download_media(bv_id, cid, config.all_media_path, 1)
+    if page_count > 1:
+        pages_response = api.request_media_pages(bv_id)
+        if pages_response.code != 0:
+            logging.error(f'获取投稿分P失败: {bv_id}')
+            return False
+        for page_id in range(1, page_count + 1):
+            api.download_media(bv_id, pages_response.pages[page_id].cid,
+                               config.all_media_path, page_id)
+    return True
 
 
 def main():
@@ -145,134 +67,184 @@ def main():
     :return: None
     """
 
-    aim_favorites, aim_medias, aim_uppers = file.read_aim_json()
+    # 整理本地信息
+    local_media_list = dao.get_all_media()
 
-    # 本地所有备份的bv号
-    local_bv_id_set = file.read_local_json()
-    # 已被删除备份的bv号
-    local_deleted_bv_id_set = file.read_deleted_json()
-    # 未及时备份被删投稿的残余信息和bv号
-    local_lost_list = file.read_lost_json()
-    local_lost_bv_id_set: set[str] = set([lost['bv_id'] for lost in local_lost_list])
+    # 本地所有备份的bv号：本地已备份，（上次获取时）线上未被删
+    local_exists_bv_id_set: set[str] = set(
+        [media.bv_id for media in local_media_list if media.is_local and not media.is_delete])
+    # 已被删除备份的bv号：本地已备份，（上次获取时）线上已被删
+    local_deleted_bv_id_set: set[str] = set(
+        [media.bv_id for media in local_media_list if media.is_local and media.is_delete])
+    # 未及时备份被删投稿的残余信息和bv号：本地未备份
+    local_lost_bv_id_set: set[str] = set(
+        [media.bv_id for media in local_media_list if not media.is_local])
 
-    # 线上有效投稿bv id
-    online_bv_id_set = set[str]()
-    # 线上已被删除投稿bv id
-    online_deleted_bv_id_set = set[str]()
-    all_medias = dict[str, dict]()
+    aim_list = dao.get_all_aim()
+    for aim in aim_list:
+        # 限制
+        limiters = dao.get_aim_limiter_by_aim_id(aim.id)
 
-    # 生成网页
-    generate_html(local_bv_id_set)
+        if aim.type == AIM_FAVORITE_TYPE_ID:
+            logging.info(f'更新收藏夹: {aim.target_id} {aim.name}')
+            # 获取收藏夹及投稿信息
+            favorite_response, now_online_media_list = api.get_favorite_media_list(aim.target_id, limiters)
 
-    for aim in aim_favorites:
-        medias = get_folder_all_medias(aim.fid, aim.media_count, aim.limiters)
-        for media in medias:
-            bv_id = media['bv_id']
-            all_medias[bv_id] = media
-            if media['title'] != '已失效视频':
-                online_bv_id_set.add(bv_id)
+            # 更新收藏夹信息
+            dao.update_aim_by_id(aim.id, favorite_response.title, generate_update_timestamp())
+
+            for media in now_online_media_list:
+                # 获取和更新UP主信息
+                upper_response = api.upper.request_user_detail(media.upper_mid)
+                if upper_response.code != 0:
+                    logging.error(f'获取UP主失败: {media.upper_mid} {media.upper_name}')
+                else:
+                    dao.save_upper(upper_response.mid, upper_response.name, upper_response.sign,
+                                   generate_update_timestamp())
+
+                # 更新投稿信息
+                if media.bv_id in local_exists_bv_id_set:  # 本地已存在
+                    if media.title == '已失效视频':  # 本地已存在，线上已被删除
+                        # 线上已被删除,更新投稿信息
+                        dao.update_media_status(media.bv_id, True, True)
+                        # 更新本地状态
+                        local_exists_bv_id_set.discard(media.bv_id)
+                        local_deleted_bv_id_set.add(media.bv_id)
+                    else:  # 本地已存在，线上有效
+                        # TODO 检查是否有更新
+                        # 更新投稿信息
+                        dao.update_media_status(media.bv_id, True, False)
+                elif media.bv_id in local_deleted_bv_id_set:  # 本地被标记为删除
+                    if media.title == '已失效视频':  # 本地被标记为删除，线上已被删除
+                        # 更新投稿信息
+                        dao.update_media_status(media.bv_id, True, True)
+                    else:  # 本地被标记为删除，线上已恢复
+                        # 更新投稿信息
+                        dao.update_media_status(media.bv_id, True, False)
+                        # 更新本地状态
+                        local_exists_bv_id_set.add(media.bv_id)
+                        local_deleted_bv_id_set.discard(media.bv_id)
+                else:  # 本地不存在
+                    if media.title == '已失效视频':  # 本地不存在，线上已被删除
+                        # 记录残余信息
+                        dao.insert_or_replace_media(media.bv_id, media.upper_mid, media.title, media.intro,
+                                                    media.duration, media.ctime, media.fav_time,
+                                                    generate_update_timestamp(), False, True)
+                        # 更新本地状态
+                        local_lost_bv_id_set.add(media.bv_id)
+                    else:  # 本地不存在，线上有效
+                        # 下载视频
+                        if not download_media(media.bv_id, media.first_cid, media.page):
+                            continue
+                        # 更新投稿信息
+                        dao.insert_or_replace_media(media.bv_id, media.upper_mid, media.title, media.intro,
+                                                    media.duration, media.ctime, media.fav_time,
+                                                    generate_update_timestamp(), True, False)
+                        # 更新本地状态
+                        local_exists_bv_id_set.add(media.bv_id)
+
+                # 更新投稿所属目标
+                dao.save_media_aim(media.bv_id, aim.id)
+                # end for media in now_online_media_list
+            # end if aim.type == AIM_FAVORITE_TYPE_ID
+        elif aim.type == AIM_UPPER_TYPE_ID:
+            logging.info(f'更新UP主: {aim.target_id} {aim.name}')
+            # 获取Up主及投稿信息
+            upper_response, now_online_media_list = api.get_upper_media_list(aim.target_id, limiters)
+
+            # 更新UP主信息
+            dao.save_upper(aim.target_id, upper_response.name, upper_response.sign, generate_update_timestamp())
+
+            # 更新UP主投稿信息
+            for media in now_online_media_list:
+                # 更新投稿信息
+                if media.bv_id in local_exists_bv_id_set:  # 本地已存在
+                    # 更新投稿信息
+                    dao.update_media_status(media.bv_id, True, False)
+                elif media.bv_id in local_deleted_bv_id_set:  # 本地标记为删除
+                    # 更新投稿信息
+                    dao.update_media_status(media.bv_id, True, False)
+                    # 更新本地状态
+                    local_exists_bv_id_set.add(media.bv_id)
+                    local_deleted_bv_id_set.discard(media.bv_id)
+                else:  # 本地不存在
+                    # 获取投稿信息
+                    media_detail = api.request_media_detail(media.bv_id)
+                    # 下载视频
+                    if not download_media(media_detail.bv_id, media_detail.pages_cid_list[0],
+                                          len(media_detail.pages_cid_list)):
+                        continue
+                    # 更新投稿信息
+                    dao.insert_or_replace_media(media_detail.bv_id, media_detail.owner_id, media_detail.title,
+                                                media_detail.desc, media_detail.duration, media_detail.ctime,
+                                                media_detail.ctime, generate_update_timestamp(), True, False)
+                    # 更新本地状态
+                    local_exists_bv_id_set.add(media_detail.bv_id)
+
+                # 更新投稿所属目标
+                dao.save_media_aim(media.bv_id, aim.id)
+                # end for media in now_online_media_list
+            # end elif aim.type == AIM_UPPER_TYPE_ID
+        elif aim.type == AIM_MEDIA_TYPE_ID:
+            logging.info(f'更新投稿: {aim.target_id} {aim.name}')
+            # 获取投稿信息
+            bv_id = bvid_aid.aid_to_bv_id(aim.target_id)
+            media = api.request_media_detail(bv_id)
+
+            if media.code != 0 and media.code != -404:
+                logging.error(f'获取投稿失败: {aim.target_id} {bv_id} : {media.code} {media.message}')
+                continue
+
+            # 获取和更新UP主信息
+            upper_response = api.upper.request_user_detail(media.owner_id)
+            if upper_response.code != 0:
+                logging.error(f'获取UP主失败: {media.owner_id} {media.title}')
             else:
-                online_deleted_bv_id_set.add(bv_id)
+                dao.save_upper(upper_response.mid, upper_response.name, upper_response.sign,
+                               generate_update_timestamp())
 
-    for aim in aim_uppers:
-        print(aim)
-        medias = get_aim_upper_all_medias(aim.mid, aim.media_count, aim.limiters)
-        print(medias)
-        for media in medias:
-            bv_id = media['bv_id']
-            all_medias[bv_id] = media
-            online_bv_id_set.add(bv_id)
+            if bv_id in local_exists_bv_id_set:  # 本地已存在
+                if media.code == -404:  # 本地已存在，线上已被删除
+                    # 线上已被删除,更新投稿信息
+                    dao.update_media_status(media.bv_id, True, True)
+                    # 更新本地状态
+                    local_exists_bv_id_set.discard(bv_id)
+                    local_deleted_bv_id_set.add(bv_id)
+                else:  # 本地已存在，线上有效
+                    # TODO 检查是否有更新
+                    # 更新投稿信息
+                    dao.update_media_status(media.bv_id, True, False)
+            elif bv_id in local_deleted_bv_id_set:  # 本地被标记为删除
+                if media.code == -404:  # 本地被标记为删除，线上已被删除
+                    # 更新投稿信息
+                    dao.update_media_status(media.bv_id, True, True)
+                else:  # 本地被标记为删除，线上已恢复
+                    # 更新投稿信息
+                    dao.update_media_status(media.bv_id, True, False)
+                    # 更新本地状态
+                    local_exists_bv_id_set.add(bv_id)
+                    local_deleted_bv_id_set.discard(bv_id)
+            else:  # 本地不存在
+                if media.code == -404:  # 本地不存在，无残留信息可供保留
+                    pass
+                else:
+                    # 下载视频
+                    if not download_media(media.bv_id, media.pages_cid_list[0], len(media.pages_cid_list)):
+                        continue
+                    # 更新投稿信息
+                    dao.insert_or_replace_media(media.bv_id, media.owner_id, media.title, media.desc,
+                                                media.duration, media.ctime, media.ctime,
+                                                generate_update_timestamp(), True, False)
+                    # 更新本地状态
+                    local_exists_bv_id_set.add(media.bv_id)
 
-    for aim in aim_medias:
-        bv_id = aim.bv_id
-        # FIXME 定义投稿数据字段
-        all_medias[bv_id] = {'title': aim.title, 'duration': aim.duration, 'bv_id': bv_id, 'cover': aim.pic}
-        if aim.available:
-            online_bv_id_set.add(bv_id)
+            # 更新投稿所属目标
+            dao.save_media_aim(media.bv_id, aim.id)
+            # end elif aim.type == AIM_MEDIA_TYPE_ID
         else:
-            online_deleted_bv_id_set.add(bv_id)
+            logging.error(f'未知备份目标类型: {aim.type}')
+            continue
 
-    # 新收藏: 本地无，线上有
-    new_favorite_medias_id = online_bv_id_set.difference(local_bv_id_set)
-    new_favorite_medias = [all_medias[bv_id] for bv_id in new_favorite_medias_id]
-
-    # 新删除：1本地有，线上残留记录
-    new_deleted_medias_id = local_bv_id_set.intersection(online_deleted_bv_id_set)
-    # 新删除：2本地有，线上没有收藏且被删除
-    for bv_id in local_bv_id_set.difference(online_bv_id_set).difference(online_deleted_bv_id_set):
-        if not check_online_available(bv_id):
-            new_deleted_medias_id.add(bv_id)
-
-    # 新丢失：本地无，线上残留记录
-    new_lost_medias_id = online_deleted_bv_id_set.difference(local_bv_id_set).difference(local_lost_bv_id_set)
-    new_lost_medias = [all_medias[bv_id] for bv_id in new_lost_medias_id]
-
-    # 显示本次更新目标
-    new_favorite_count = len(new_favorite_medias_id)
-    new_deleted_count = len(new_deleted_medias_id)
-    new_lost_count = len(new_lost_medias_id)
-    logging.info(f'新收藏: {new_favorite_count} 新删除: {new_deleted_count} 新丢失: {new_lost_count}')
-
-    # 读取新删除投稿信息
-    new_deleted_medias = [file.read_media_json(bv_id) for bv_id in new_deleted_medias_id]
-
-    def output_media(media):
-        logging.info(f'标题: {media["title"]} 时长: {media["duration"]}')
-
-    logging.info('新收藏-----------')
-    [output_media(media) for media in new_favorite_medias]
-    logging.info('新删除-----------')
-    [output_media(media) for media in new_deleted_medias]
-    logging.info('新丢失-----------')
-    [output_media(media) for media in new_lost_medias]
-
-    if new_favorite_count + new_deleted_count + new_lost_count == 0:
-        logging.info('没有新收藏、新删除和新丢失！')
-        return
-
-    # 决定是否执行
-    choose = input('是否执行更新？输入n不执行，否则执行').strip()
-    if len(choose) == 1 and choose[0] == 'n':
-        return
-
-    # 更新已丢失
-    file.write_lost_json(local_lost_list + new_lost_medias)
-
-    # 更新已删除
-    for media in new_deleted_medias:
-        # 链接已备份新删除投稿到单独文件夹
-        file.create_link_from_all_to_deleted(media['bv_id'], media['page'])
-        # 已删除文件夹创建投稿标题名字文件
-        file.create_name_file(media['bv_id'], media['page'], media['title'],
-                              [page['part'] for page in media['pages']])
-        # 每次更新已备份已删除bv
-        local_deleted_bv_id_set.add(media['bv_id'])
-        file.write_deleted_json(list[str](local_deleted_bv_id_set))
-
-    # 更新新收藏
-    for media in new_favorite_medias:
-        pages: list[dict] = get_media_all_pages(media['bv_id'])
-        bv_id = media['bv_id']
-        # 下载封面图片
-        download_file(bv_id, media['cover'], os.path.join(file.all_path, bv_id + '.jpg'))
-        # 保存投稿信息
-        file.write_json_file(os.path.join(file.all_path, bv_id + '.json'), media)
-        # 下载所有分P
-        cid_list: list[int] = [page['cid'] for page in pages]
-        logging.info('cid_list: %s' % cid_list)
-        for i in range(len(cid_list)):
-            cid = cid_list[i]
-            if i != 0:
-                logging.info('sleep for 3s')
-                time.sleep(3)
-
-            page_id = str(i + 1)
-            if len(cid_list) == 1:
-                page_id = ''
-            download_media(bv_id, cid, file.all_path, page_id)
-        # 更新本地已备份投稿信息
-        local_bv_id_set.add(bv_id)
-        file.write_local_json(list[str](local_bv_id_set))
-
-    # 生成网页
-    generate_html(local_bv_id_set)
+    # 输出丢失投稿的 bv_id
+    for bv_id in local_lost_bv_id_set:
+        logging.warning(f'丢失投稿: {bv_id}')

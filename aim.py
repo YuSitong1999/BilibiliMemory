@@ -4,198 +4,161 @@ import math
 import sys
 import time
 
-import file
+import api
+import bvid_aid
+import dao
+
+AIM_FAVORITE_TYPE_ID = 0
+AIM_MEDIA_TYPE_ID = 1
+AIM_UPPER_TYPE_ID = 2
 
 command_aim = '''
     python main.py aim
         status
-        add <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-t <最早发布时间>] [-l <投稿时长>]
-        rm <备份目标收藏夹序号> [备份目标条件序号1,...,备份目标条件序号N]
-        addm <投稿BV ID1>[,<投稿BV ID2>,...,<投稿BV IDN>]
-        rmm <投稿BV ID1>[,<投稿BV ID2>,...,<投稿BV IDN>]
-        addu <UP主 ID1>[,<UP主 ID2>,...,<UP主 IDN>] [-t <最早发布时间>] [-l <投稿时长>]
-        rmu <备份目标UP主序号> [备份目标UP主条件序号1,...,备份目标UP主条件序号N]
+        add <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-a <最早发布时间>] [-d <投稿时长秒数>]
+        addm <投稿BV ID1>[,...,<投稿BV IDN>]
+        addu <UP主 ID1>[,...,<UP主 IDN>] [-a <最早发布时间>] [-d <投稿时长秒数>]
+        rm <备份目标ID1>[,...,<备份目标IDN>]
+        rml <备份目标限制条件ID1>[,...,<备份目标限制条件IDN>]
     '''
 
 
-def aim_add_favorites(argv: list[str], aim_favorites: list[file.Aim]) -> list[file.Aim]:
+def aim_add_media(argv: list[str]) -> None:
+    """
+    新增备份目标投稿
+    :param argv: <投稿BV ID1>[,...,<投稿BV IDN>]
+    """
     if len(argv) < 1:
-        print(f'参数个数错误!\n{command_aim}')
-        return aim_favorites
+        logging.error(f'参数个数错误!\n{command_aim}')
+        return
 
-    fav_fid_set = set[int]()
-    for s in argv[0].split(','):
-        if not s.isnumeric():
-            print(f'参数{s}错误,已跳过')
-            continue
-        fav_fid_set.add(int(s))
+    for bv_id in argv[0].split(','):
+        # bvid to aid
+        aid = bvid_aid.bv_id_to_aid(bv_id)
+        # 投稿可能已抓取
+        media = dao.get_media_by_bv_id(bv_id)
+        name: str
+        if media is None:
+            # 获取投稿信息
+            media_response = api.media.request_media_detail(bv_id)
+            name = media_response.title
+        else:
+            name = media.title
+        # 加入记录
+        dao.insert_or_replace_aim(AIM_MEDIA_TYPE_ID, aid, name)
 
-    argv = argv[1:]
 
+def parse_argv(argv: list[str]) -> tuple[int, int]:
+    """
+    解析参数
+    :param argv: 参数
+    :return: after_timestamp, max_duration
+    """
     try:
         opts, args = getopt.getopt(argv, "a:d:", [])
     except getopt.GetoptError:
-        print(f'参数错误{command_aim}')
+        logging.error(f'参数错误{command_aim}')
         sys.exit(1)
 
-    after_timestamp: int = 0
-    max_duration: int = 0  # 缺省不限制投稿时长
+    after_timestamp: int | None = None
+    max_duration: int | None = None
     for opt, arg in opts:
         if opt == '-a':
             after_timestamp = math.floor(time.mktime(time.strptime(arg, '%Y-%m-%d')))
         elif opt == '-d':
             max_duration = int(arg)
-
-    limiter = file.Limiter(after_timestamp, max_duration)
-    for i in range(len(aim_favorites)):
-        if aim_favorites[i].fid in fav_fid_set:
-            aim_favorites[i].limiters.append(limiter)
-            fav_fid_set.remove(aim_favorites[i].fid)
-
-    for fid in fav_fid_set:
-        aim_favorites.append(file.Aim(fid, [limiter]))
-    return aim_favorites
+    return after_timestamp, max_duration
 
 
-def aim_add_uppers(argv: list[str], aim_uppers: list[file.AimUpper]) -> list[file.AimUpper]:
+def aim_add_favorites(argv: list[str]) -> None:
+    """
+    新增备份目标收藏夹
+    :param argv: <收藏夹ID1>[,<收藏夹ID2>,...,<收藏夹IDN>] [-a <最早发布时间>] [-d <投稿时长秒数>]
+    """
     if len(argv) < 1:
-        raise f'参数个数错误!\n{command_aim}'
+        logging.error(f'参数个数错误!\n{command_aim}')
+        sys.exit(1)
 
-    fav_mid_set = set[int]()
+    after_timestamp, max_duration = parse_argv(argv[1:])
+
     for s in argv[0].split(','):
         if not s.isnumeric():
-            print(f'参数{s}错误,已跳过')
+            logging.error(f'参数{s}错误,已跳过')
             continue
-        fav_mid_set.add(int(s))
+        fid: int = int(s)
+        # 获取相同目标收藏
+        aim_favorite: dao.Aim | None = dao.get_aim_by_type_and_target_id(AIM_FAVORITE_TYPE_ID, fid)
+        if aim_favorite is None:
+            # 获取收藏夹信息
+            favorite_response = api.favorite.request_favorite(fid)
+            dao.insert_or_replace_aim(AIM_FAVORITE_TYPE_ID, fid, favorite_response.title)
+            aim_favorite = dao.get_aim_by_type_and_target_id(AIM_FAVORITE_TYPE_ID, fid)
 
-    argv = argv[1:]
-
-    try:
-        opts, args = getopt.getopt(argv, "a:d:", [])
-    except getopt.GetoptError:
-        raise f'参数错误{command_aim}'
-
-    after_timestamp: int = 0
-    max_duration: int = 0  # 缺省不限制投稿时长
-    for opt, arg in opts:
-        if opt == '-a':
-            after_timestamp = math.floor(time.mktime(time.strptime(arg, '%Y-%m-%d')))
-        elif opt == '-d':
-            max_duration = int(arg)
-
-    limiter = file.Limiter(after_timestamp, max_duration)
-    # 已存在Up主新增条件
-    for i in range(len(aim_uppers)):
-        if aim_uppers[i].mid in fav_mid_set:
-            aim_uppers[i].limiters.append(limiter)
-            fav_mid_set.remove(aim_uppers[i].mid)
-
-    # 新UP主
-    for mid in fav_mid_set:
-        aim_uppers.append(file.AimUpper(mid, [limiter]))
-    return aim_uppers
+        # 加入新目标限制
+        dao.insert_aim_limiter(aim_favorite.id, after_timestamp, max_duration)
 
 
-def aim_add_media(argv: list[str], aim_medias: list[file.AimMedia]) -> list[file.AimMedia]:
-    """新增部分目标投稿，格式错误或已存在则跳过
+def aim_add_uppers(argv: list[str]):
+    """
+    新增备份目标UP主
+    :param argv: <UP主 ID1>[,...,<UP主 IDN>] [-a <最早发布时间>] [-d <投稿时长秒数>]
+    """
+    if len(argv) < 1:
+        logging.error(f'参数个数错误!\n{command_aim}')
+        sys.exit(1)
 
-    :param argv: 新增目标投稿的bv id集
-    :param aim_medias: 原目标投稿
-    :return: 新目标投稿
+    after_timestamp, max_duration = parse_argv(argv[1:])
+
+    for s in argv[0].split(','):
+        if not s.isnumeric():
+            logging.error(f'参数{s}错误,已跳过')
+            continue
+        mid = int(s)
+        # 获取相同目标Up主
+        aim_upper: dao.Aim | None = dao.get_aim_by_type_and_target_id(AIM_UPPER_TYPE_ID, mid)
+        if aim_upper is None:
+            # 获取Up主信息
+            upper_response = api.upper.request_user_detail(mid)
+            dao.insert_or_replace_aim(AIM_UPPER_TYPE_ID, mid, upper_response.name)
+            aim_upper = dao.get_aim_by_type_and_target_id(AIM_UPPER_TYPE_ID, mid)
+
+        # 加入新目标限制
+        dao.insert_aim_limiter(aim_upper.id, after_timestamp, max_duration)
+
+
+def rm_aim(argv: list[str]) -> None:
+    """
+    删除备份目标
+    :param argv: <备份目标ID1>[,...,<备份目标IDN>]
     """
     if len(argv) != 1:
-        print(f'参数个数错误!\n{command_aim}')
-        return aim_medias
+        logging.error(f'参数个数错误!\n{command_aim}')
+        return
 
-    bv_id_list = set[str]([aim.bv_id for aim in aim_medias])
-    for bv_id in argv[0].split(','):
-        if not (bv_id.startswith('BV') and len(bv_id) == 12):
-            print(f'bv id {bv_id} 格式错误,已跳过')
-            continue
-        if bv_id in bv_id_list:
-            print(f'bv id {bv_id} 已存在,已跳过')
-            continue
-        aim_medias.append(file.AimMedia(bv_id))
-    return aim_medias
-
-
-def aim_rm_favorites(argv: list[str], aim_favorites: list[file.Aim]) -> list[file.Aim]:
-    if len(argv) != 2:
-        print(f'参数个数错误!\n{command_aim}')
-        return aim_favorites
-
-    aim_fav_number = int(argv[0])
-    aim_fav_number -= 1
-    if aim_fav_number < 0 or aim_fav_number >= len(aim_favorites):
-        print(f'目标收藏夹{aim_fav_number}不存在!')
-        return aim_favorites
-
-    aim_limiters_number_set = set[int]()
-    for s in argv[1].split(','):
+    for s in argv[0].split(','):
         if not s.isnumeric():
-            print(f'参数{s}错误,已跳过')
+            logging.error(f'参数{s}错误,已跳过')
             continue
-        number = int(s) - 1
-        if number < 0 or number >= len(aim_favorites[aim_fav_number].limiters):
-            print(f'参数{number}超出范围,已跳过')
-            continue
-        aim_limiters_number_set.add(number)
-
-    limiters = [aim_favorites[aim_fav_number].limiters[i]
-                for i in range(len(aim_favorites[aim_fav_number].limiters))
-                if i not in aim_limiters_number_set]
-    if len(limiters) == 0:
-        aim_favorites = aim_favorites[:aim_fav_number] + aim_favorites[aim_fav_number + 1:]
-    else:
-        aim_favorites[aim_fav_number].limiters = limiters
-    return aim_favorites
+        aim_id = int(s)
+        dao.delete_aim_by_id(aim_id)
 
 
-def aim_rm_uppers(argv: list[str], aim_uppers: list[file.AimUpper]) -> list[file.AimUpper]:
-    if len(argv) != 2:
-        raise f'参数个数错误!\n{command_aim}'
+def rm_aim_limiter(argv: list[str]) -> None:
+    """
+    删除备份目标限制条件
 
-    aim_upper_number = int(argv[0])
-    aim_upper_number -= 1
-    if aim_upper_number < 0 or aim_upper_number >= len(aim_uppers):
-        raise f'目标UP主{aim_upper_number}不存在!'
-
-    aim_limiters_number_set = set[int]()
-    for s in argv[1].split(','):
-        if not s.isnumeric():
-            print(f'参数{s}错误,已跳过')
-            continue
-        number = int(s) - 1
-        if number < 0 or number >= len(aim_uppers[aim_upper_number].limiters):
-            print(f'参数{number}超出范围,已跳过')
-            continue
-        aim_limiters_number_set.add(number)
-
-    limiters = [aim_uppers[aim_upper_number].limiters[i]
-                for i in range(len(aim_uppers[aim_upper_number].limiters))
-                if i not in aim_limiters_number_set]
-    if len(limiters) == 0:
-        aim_uppers = aim_uppers[:aim_upper_number] + aim_uppers[aim_upper_number + 1:]
-    else:
-        aim_uppers[aim_upper_number].limiters = limiters
-    return aim_uppers
-
-
-def aim_rm_media(argv: list[str], aim_medias: list[file.AimMedia]) -> list[file.AimMedia]:
-    """移除部分目标投稿
-
-    :param argv: 移除目标投稿的bv id集
-    :param aim_medias: 原目标投稿
-    :return: 新目标投稿
+    :param argv: <备份目标限制条件ID1>[,...,<备份目标限制条件IDN>]
     """
     if len(argv) != 1:
-        print(f'参数个数错误!\n{command_aim}')
-        return aim_medias
+        logging.error(f'参数个数错误!\n{command_aim}')
+        return
 
-    bv_id_set = set[str]([bv_id.strip() for bv_id in argv[0].split(',')
-                          if bv_id.startswith('BV') and len(bv_id) == 12])
-    logging.info(f'移除的目标投稿: {bv_id_set}')
-    return [aim for aim in aim_medias if aim.bv_id not in bv_id_set]
+    for s in argv[0].split(','):
+        if not s.isnumeric():
+            logging.error(f'参数{s}错误,已跳过')
+            continue
+        aim_limiter_id = int(s)
+        dao.delete_aim_limiter_by_id(aim_limiter_id)
 
 
 def main(argv: list[str]):
@@ -207,64 +170,74 @@ def main(argv: list[str]):
 
     operation_status = 'status'
     operation_add_favorites = 'add'
-    operation_rm_favorites = 'rm'
     operation_add_media = 'addm'
-    operation_rm_media = 'rmm'
     operation_add_upper = 'addu'
-    operation_rm_upper = 'rmu'
+    operation_rm = 'rm'
+    operation_rm_limiter = 'rml'
 
-    operations = (operation_add_favorites, operation_rm_favorites, operation_status,
-                  operation_add_media, operation_rm_media, operation_add_upper, operation_rm_upper)
+    operations = (operation_status, operation_add_favorites,
+                  operation_add_media, operation_add_upper, operation_rm)
     if len(argv) == 0 or argv[0] not in operations:
-        print(f'命令"{argv}"不受支持，请输入支持的命令:\n{command_aim}')
+        logging.error(f'命令"{argv}"不受支持，请输入支持的命令:\n{command_aim}')
         return
 
     operation = argv[0]
     argv = argv[1:]
-    aim_favorites, aim_medias, aim_uppers = file.read_aim_json()
 
     if operation == operation_add_favorites:
         # 新增备份目标收藏夹
-        aim_favorites = aim_add_favorites(argv, aim_favorites)
+        aim_add_favorites(argv)
     elif operation == operation_add_upper:
         # 新增目标UP主
-        aim_uppers = aim_add_uppers(argv, aim_uppers)
+        aim_add_uppers(argv)
+        pass
     elif operation == operation_add_media:
-        # 新增目标投稿
-        aim_medias = aim_add_media(argv, aim_medias)
-    elif operation == operation_rm_favorites:
-        # 删除备份目标收藏夹
-        aim_favorites = aim_rm_favorites(argv, aim_favorites)
-    elif operation == operation_rm_upper:
-        # 删除目标UP主
-        aim_uppers = aim_rm_uppers(argv, aim_uppers)
-    elif operation == operation_rm_media:
-        # 删除目标投稿
-        aim_medias = aim_rm_media(argv, aim_medias)
+        # 新增备份目标投稿
+        aim_add_media(argv)
+    elif operation == operation_rm:
+        # 删除备份目标
+        rm_aim(argv)
+    elif operation == operation_rm_limiter:
+        # 删除备份目标限制条件
+        rm_aim_limiter(argv)
+    else:
+        aim_list = dao.get_all_aim()
+        aim_favorites = [aim for aim in aim_list if aim.type == AIM_FAVORITE_TYPE_ID]
+        aim_uppers = [aim for aim in aim_list if aim.type == AIM_UPPER_TYPE_ID]
+        aim_medias = [aim for aim in aim_list if aim.type == AIM_MEDIA_TYPE_ID]
 
-    # 查看当前备份目标收藏
-    aim_favorites_len = len(aim_favorites)
-    print(aim_favorites)
-    if aim_favorites_len == 0:
-        print('查看当前目标收藏夹为空!')
-    for i in range(aim_favorites_len):
-        print(f'{i + 1}: {aim_favorites[i]}')
+        # 查看当前备份目标收藏夹
+        aim_favorites_len = len(aim_favorites)
+        logging.info(f'当前备份目标收藏夹: {aim_favorites_len}')
+        if aim_favorites_len == 0:
+            logging.info('查看当前目标收藏夹为空!')
+        for aim in aim_favorites:
+            logging.info(aim)
+            aim_limiter_list = dao.get_aim_limiter_by_aim_id(aim.id)
+            for aim_limiter in aim_limiter_list:
+                logging.info(f'\t{aim_limiter}')
+        logging.info('')
 
-    # 查看当前备份目标UP主
-    aim_uppers_len = len(aim_uppers)
-    print(aim_uppers_len)
-    if aim_uppers_len == 0:
-        print('查看当前目标UP主为空!')
-    for i in range(aim_uppers_len):
-        print(f'{i + 1}: {aim_uppers[i]}')
+        # 查看当前备份目标UP主
+        aim_uppers_len = len(aim_uppers)
+        logging.info(f'当前备份目标UP主:{aim_uppers_len}')
+        if aim_uppers_len == 0:
+            logging.info('查看当前目标UP主为空!')
+        for aim in aim_uppers:
+            logging.info(aim)
+            aim_limiter_list = dao.get_aim_limiter_by_aim_id(aim.id)
+            for aim_limiter in aim_limiter_list:
+                logging.info(f'\t{aim_limiter}')
+        logging.info('')
 
-    # 查看当前备份目标投稿
-    aim_medias_len = len(aim_medias)
-    print(aim_medias_len)
-    if aim_medias_len == 0:
-        print('查看当前目标投稿为空!')
-    for i in range(aim_medias_len):
-        print(f'{i + 1}: {aim_medias[i]}')
-
-    # 更新备份目标收藏夹
-    file.write_aim_json(aim_favorites, aim_medias, aim_uppers)
+        # 查看当前备份目标投稿
+        aim_medias_len = len(aim_medias)
+        logging.info(f'当前备份目标投稿: {aim_medias_len}', )
+        if aim_medias_len == 0:
+            logging.info('查看当前目标投稿为空!')
+        for aim in aim_medias:
+            logging.info(aim)
+            aim_limiter_list = dao.get_aim_limiter_by_aim_id(aim.id)
+            for aim_limiter in aim_limiter_list:
+                logging.info(f'\t{aim_limiter}')
+        logging.info('')

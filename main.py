@@ -1,21 +1,26 @@
+"""
+主模块
+
+通过命令行执行命令
+"""
+import logging
 import sys
 
-import file
 import aim
+import config
+import dao
 import update
-import logger
 
 if __name__ == '__main__':
-    file.ensure_directory_and_file()
-    logger.configure_logger()
+    # 加载配置
+    config.load_config()
+    # 确认所需文件存在
+    dao.ensure_database_file()
 
     opt = sys.argv[1]
     if opt == 'aim':
         aim.main(sys.argv[2:])
     elif opt == 'update':
         update.main()
-    elif opt == 'clear':
-        logger.clear(sys.argv[2:])
-        exit(0)
-
-    logger.delete_old_log_file()
+    else:
+        logging.error(f'未知命令 {opt}')

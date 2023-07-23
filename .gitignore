@@ -159,5 +159,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-# ignore download files
+# 下载文件
 output/
+outputV0.2/
+
+# 配置文件
+config.json5

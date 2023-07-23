@@ -1,0 +1,8 @@
+{
+  // 日志目录
+  "log_file_path": "outputV0.2/log",
+  // SQLite3数据库文件
+  "sqlite3_file": "outputV0.2/db.sqlite3",
+  // 投稿文件目录
+  "all_media_path": "outputV0.2/all_media",
+}

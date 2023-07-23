@@ -1,3 +1,4 @@
+'''
 import json
 import logging
 import os
@@ -6,6 +7,7 @@ import time
 
 import api
 import request
+import sqlite
 
 output_path: str = 'output'
 
@@ -34,17 +36,16 @@ def ensure_directory_and_file():
     global output_path
     global all_path, deleted_path, meta_path, tmp_path
 
-    # 所有投稿目录\已删除投稿目录\元数据目录\临时数据目录
-    os.makedirs(output_path, exist_ok=True)
-    all_path = os.path.join(output_path, 'all')
-    deleted_path = os.path.join(output_path, 'deleted')
-    meta_path = os.path.join(output_path, 'meta')
-    tmp_path = os.path.join(output_path, 'tmp')
+    dao.ensure_directory_and_file()
 
-    os.makedirs(all_path, exist_ok=True)
+    # 所有投稿目录\已删除投稿目录\元数据目录\临时数据目录
+    output_path = dao.output_path
+    all_path = dao.all_path
+    meta_path = dao.meta_path
+    tmp_path = dao.tmp_path
+
+    deleted_path = os.path.join(output_path, 'deleted')
     os.makedirs(deleted_path, exist_ok=True)
-    os.makedirs(meta_path, exist_ok=True)
-    os.makedirs(tmp_path, exist_ok=True)
 
     # 确保元数据(现有、被删除备份、丢失投稿信息和下载目标目录)json文件存在
     global local_json, deleted_json, lost_json, aim_json
@@ -139,6 +140,12 @@ class AimMedia:
 
     def __str__(self):
         return f'投稿标题:{self.title} 投稿分P数:{self.media_count} 投稿bv id:{self.bv_id}'
+
+
+def read_aim_json_raw() -> list[dict]:
+    with open(aim_json, encoding='utf-8') as f:
+        aims: list[dict] = json.load(f)
+        return aims
 
 
 def read_aim_json() -> [list[Aim], list[AimMedia], list[AimUpper]]:
@@ -242,3 +249,4 @@ def write_html(html_content: str):
     # 写网页
     with open(os.path.join(meta_path, 'index.html'), 'w', encoding='utf-8') as f:
         f.write(template.replace('<!-- 此处填充投稿内容 -->', html_content))
+'''

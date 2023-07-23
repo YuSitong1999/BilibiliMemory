@@ -1,3 +1,4 @@
+'''
 import json
 import logging
 import sys
@@ -52,3 +53,4 @@ def request_retry(url: str, headers: dict = None, retry: int = 3) -> requests.Re
 
 def request_retry_json(url: str, headers: dict = None, retry: int = 3) -> dict:
     return json.loads(request_retry(url, headers, retry).text)
+'''
