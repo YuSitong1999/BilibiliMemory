@@ -5,4 +5,6 @@
   "sqlite3_file": "outputV0.2/db.sqlite3",
   // 投稿文件目录
   "all_media_path": "outputV0.2/all_media",
+  // B站 Cookie不要泄露
+  "cookie": "",
 }

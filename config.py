@@ -7,12 +7,15 @@ import time
 
 import json5
 
+import api
+
 config_file: str = 'config.json5'
 config_example_file: str = 'config_example.json5'
 
 log_file_path: str
 sqlite3_file: str
 all_media_path: str
+cookie: str
 
 
 def load_config():
@@ -31,19 +34,27 @@ def load_config():
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json5.load(f)
     # 设置配置项常量
-    global log_file_path, sqlite3_file, all_media_path
+    global log_file_path, sqlite3_file, all_media_path, cookie
     log_file_path = config['log_file_path']
     sqlite3_file = config['sqlite3_file']
     all_media_path = config['all_media_path']
+    cookie = config['cookie']
+    cookie = cookie.strip()
+    if cookie == '':
+        # FIXME cookie 实测多数情况下有 'bsource=1' 就行
+        cookie = os.getenv('BILIBILI_COOKIE', 'bsource=1')
     print(f'log_file_path: {log_file_path}')
     print(f'sqlite3_file: {sqlite3_file}')
     print(f'all_media_path: {all_media_path}')
+    print(f'cookie length: {len(cookie)}')
 
     # 级联创建目录
     os.makedirs(log_file_path, exist_ok=True)
     os.makedirs(all_media_path, exist_ok=True)
 
     configure_logger()
+
+    api.set_default_headers_with_cookie(cookie)
 
 
 def configure_logger():

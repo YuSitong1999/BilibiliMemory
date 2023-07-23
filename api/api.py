@@ -12,14 +12,24 @@ import requests
 user_agent: str = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
                   'Chrome/99.0.4844.74 Safari/537.36 Edg/99.0.1150.55'
 
-# FIXME cookie 实测有这一个就行，以后可能有变化
-cookie: str = 'bsource=1'
-
 default_headers: dict[str, str] = {
     'Connection': 'close',
     'User-Agent': user_agent,
-    'cookie': cookie,
 }
+
+
+def set_default_headers_with_cookie(cookie: str):
+    """
+    设置默认请求头
+    :param cookie: cookie
+    :return: None
+    """
+    global default_headers
+    default_headers = {
+        'Connection': 'close',
+        'User-Agent': user_agent,
+        'cookie': cookie,
+    }
 
 
 def request_retry_url_list(url_list: list[str], headers: dict[str, str] = None, retry: int = 3) -> requests.Response:
@@ -51,6 +61,7 @@ def request_retry(url: str, headers: dict[str, str] = None, retry: int = 3) -> r
     :param retry: 重试次数
     :return: 响应
     """
+    global default_headers
     # 始终设置 User Agent
     if headers is None:
         # 直接使用

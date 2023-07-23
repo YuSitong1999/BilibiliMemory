@@ -3,9 +3,14 @@ import unittest
 import api.favorite
 import api.media
 import api.upper
+import config
 
 
 class MyTestCase(unittest.TestCase):
+    # 初始化
+    def setUp(self) -> None:
+        config.load_config()
+
     def test_request_favorite(self):
         """
         测试获取收藏夹信息
@@ -113,23 +118,22 @@ class MyTestCase(unittest.TestCase):
             self.assertIsNotNone(page.duration)
             self.assertIsNotNone(page.first_frame)
 
-    # FIXME 无法通过 Github Actions 执行测试
-    # def test_request_media_audio_video(self):
-    #     """
-    #     测试获取投稿音视频url
-    #     """
-    #     # https://api.bilibili.com/x/player/playurl?fnval=976&bvid=BV1i8411S7Zy&cid=1204741650
-    #     bv_id: str = 'BV1i8411S7Zy'
-    #     cid: int = 1204741650
-    #     audio_list, video_list = api.media.request_media_audio_video(bv_id, cid)
-    #     print(audio_list)
-    #     print(video_list)
-    #     self.assertGreater(len(audio_list), 0)
-    #     self.assertGreater(len(video_list), 0)
-    #     for url in audio_list:
-    #         self.assertEqual(type(url), str)
-    #     for url in video_list:
-    #         self.assertEqual(type(url), str)
+    def test_request_media_audio_video(self):
+        """
+        测试获取投稿音视频url
+        """
+        # https://api.bilibili.com/x/player/playurl?fnval=976&bvid=BV1i8411S7Zy&cid=1204741650
+        bv_id: str = 'BV1i8411S7Zy'
+        cid: int = 1204741650
+        audio_list, video_list = api.media.request_media_audio_video(bv_id, cid)
+        print(audio_list)
+        print(video_list)
+        self.assertGreater(len(audio_list), 0)
+        self.assertGreater(len(video_list), 0)
+        for url in audio_list:
+            self.assertEqual(type(url), str)
+        for url in video_list:
+            self.assertEqual(type(url), str)
 
 
 if __name__ == '__main__':
